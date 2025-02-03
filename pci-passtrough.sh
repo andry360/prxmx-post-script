@@ -17,6 +17,8 @@ else
     exit 1
 fi
 
+#####################################################################################################################################
+
 # 2. Abilitare IOMMU nel GRUB
 GRUB_CONFIG="/etc/default/grub"
 if grep -q "$IOMMU_FLAG" $GRUB_CONFIG; then
@@ -26,6 +28,8 @@ else
     sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$IOMMU_FLAG iommu=pt /" $GRUB_CONFIG
     update-grub
 fi
+
+#####################################################################################################################################
 
 # 3. Caricare i moduli necessari
 MODULES_FILE="/etc/modules"
@@ -38,20 +42,32 @@ for mod in "${MODULES[@]}"; do
     fi
 done
 
-# 4. Blacklist dei moduli grafici non necessari
-BLACKLIST_FILE="/etc/modprobe.d/blacklist.conf"
-echo "Blacklist dei moduli non necessari..."
-echo -e "blacklist nouveau\nblacklist nvidia\nblacklist radeon\nblacklist amdgpu" > $BLACKLIST_FILE
+#####################################################################################################################################
+
+# 4.1 Blacklist dei moduli grafici non necessari
+#BLACKLIST_FILE="/etc/modprobe.d/blacklist.conf"
+#echo "Blacklist dei moduli non necessari..."
+#echo -e "blacklist nouveau\nblacklist nvidia\nblacklist radeon\nblacklist amdgpu" > $BLACKLIST_FILE
+
+# 4.2 Blacklist dei moduli WIFI e Bluetooth non necessari
+BLACKLIST_FILE="/etc/modprobe.d/blacklist-mt7921e.conf"
+echo "Blacklist dei driver WIFI e Bluetooth..."
+echo -e "# Driver WIFI\nblacklist mt7921e\nblacklist mt76\nblacklist mt76_connac_lib\nblacklist mt7921_common\nblacklist cfg80211\n\n# Driver Bluetooth\nblacklist btrtl\nblacklist btusb\nblacklist bluetooth\nblacklist btmtk\nblacklist mtd\nblacklist spi_nor\nblacklist cmdlinepart" > $BLACKLIST_FILE
+echo "Blacklist dei driver WIFI e Bluetooth completata."
 
 #####################################################################################################################################
+
 # 5. Configurazione di VFIO per PCI Passthrough
 echo "Configurazione di vfio-pci..."
 echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/vfio.conf
 echo "Configurazione di Proxmox VE per PCI Passthrough..."
 
+#####################################################################################################################################
+
 # 6. Configurazione delle opzioni per KVM e VFIO con selezione interattiva
 echo "Abilitazione del supporto IOMMU in Proxmox..."
 
+#####################################################################################################################################
 # Creazione del file di configurazione per KVM
 echo -e "options kvm ignore_msrs=1\noptions kvm report_ignored_msrs=0" > /etc/modprobe.d/kvm.conf
 
