@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Identificare i dispositivi PCI disponibili per il passthrough. Testa questo script mettendolo da solo su github.
 echo "Ricerca dei dispositivi PCI compatibili..."
