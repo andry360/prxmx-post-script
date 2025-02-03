@@ -1,16 +1,24 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# Identificare i dispositivi PCI disponibili per il passthrough. Testa questo script mettendolo da solo su github.
-echo "Ricerca dei dispositivi PCI compatibili..."
+echo "Configurazione di Proxmox VE per PCI Passthrough..."
 
-# Lista dei dispositivi compatibili (GPU, Audio, 3D Controller)
-PCI_LIST=$(lspci -nn | grep -i "vga\|audio\|3d controller")
+# 6. Configurazione delle opzioni per KVM e VFIO con selezione interattiva
+echo "Abilitazione del supporto IOMMU in Proxmox..."
+
+# Creazione del file di configurazione per KVM
+echo -e "options kvm ignore_msrs=1\noptions kvm report_ignored_msrs=0" > /etc/modprobe.d/kvm.conf
+
+# Identificare tutti i dispositivi PCI disponibili per il passthrough
+echo "Ricerca dei dispositivi PCI disponibili..."
+
+# Ottenere l'elenco completo delle periferiche PCI
+PCI_LIST=$(lspci -nn)
 PCI_IDS=()
 PCI_ADDRESSES=()
 
 # Creazione dell'elenco numerato
 if [ -z "$PCI_LIST" ]; then
-    echo "Nessun dispositivo PCI compatibile trovato! Controlla con 'lspci -nn'."
+    echo "Nessun dispositivo PCI rilevato! Controlla con 'lspci -nn'."
     exit 1
 fi
 
