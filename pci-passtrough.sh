@@ -51,7 +51,7 @@ done
 
 # 4.2 Blacklist dei moduli WIFI e Bluetooth non necessari
 BLACKLIST_FILE="/etc/modprobe.d/blacklist-mt7921e.conf"
-echo "Blacklist dei driver WIFI e Bluetooth..."
+echo "Blacklist dei driver WIFI e bluetooth scheda di rete MEDIATEK MT7922 WIFI 6e"
 echo -e "# Driver WIFI\nblacklist mt7921e\nblacklist mt76\nblacklist mt76_connac_lib\nblacklist mt7921_common\nblacklist cfg80211\n\n# Driver Bluetooth\nblacklist btrtl\nblacklist btusb\nblacklist bluetooth\nblacklist btmtk\nblacklist mtd\nblacklist spi_nor\nblacklist cmdlinepart" > $BLACKLIST_FILE
 echo "Blacklist dei driver WIFI e Bluetooth completata."
 
@@ -61,15 +61,6 @@ echo "Blacklist dei driver WIFI e Bluetooth completata."
 echo "Configurazione di vfio-pci..."
 echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/vfio.conf
 echo "Configurazione di Proxmox VE per PCI Passthrough..."
-
-#####################################################################################################################################
-
-# 6. Configurazione delle opzioni per KVM e VFIO con selezione interattiva
-echo "Abilitazione del supporto IOMMU in Proxmox..."
-
-#####################################################################################################################################
-# Creazione del file di configurazione per KVM
-echo -e "options kvm ignore_msrs=1\noptions kvm report_ignored_msrs=0" > /etc/modprobe.d/kvm.conf
 
 # Identificare tutti i dispositivi PCI disponibili per il passthrough
 echo "Ricerca dei dispositivi PCI disponibili..."
@@ -115,8 +106,8 @@ SELECTED_ADDR="${PCI_ADDRESSES[$((SELECTION-1))]}"
 echo "Hai selezionato il dispositivo: $SELECTED_ADDR (ID: $SELECTED_ID)"
 
 # Scrivere la configurazione VFIO
-echo "options vfio-pci ids=$SELECTED_ID disable_idle_d3=1" > /etc/modprobe.d/vfio.conf
-echo "Configurazione aggiornata. Riavviare il sistema per applicare le modifiche."
+echo "options vfio-pci ids=$SELECTED_ID disable_idle_d3=1\noptions vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/vfio.conf
+echo "Configurazione aggiornata. Al riavvio del sistema verranno applicate le modifiche."
 
 ######################################################################################################################################
 
