@@ -1,83 +1,72 @@
 #!/bin/bash
 
-echo "Configurazione di Proxmox VE per PCI Passthrough..."
+# Script per configurare PCI Passthrough su Proxmox VE
+# Genera un log dettagliato in /var/log/pci_passthrough.log
 
-# 1. Controlla il supporto alla virtualizzazione e il modello del processore
-CPU_MODEL=$(grep "model name" /proc/cpuinfo | head -n 1 | awk -F ': ' '{print $2}')
-echo "Modello CPU rilevato: $CPU_MODEL"
+LOGFILE="/var/log/pci_passthrough.log"
 
+echo "===== Avvio configurazione PCI Passthrough =====" | tee -a "$LOGFILE"
+echo "Data e ora: $(date)" | tee -a "$LOGFILE"
+
+# 1. Abilitazione di IOMMU nel GRUB
+echo ">>> Configurazione di IOMMU nel bootloader GRUB..." | tee -a "$LOGFILE"
+
+GRUB_CONFIG="/etc/default/grub"
+
+# Determina se è un sistema Intel o AMD
 if grep -q "vmx" /proc/cpuinfo; then
-    echo "Processore Intel con supporto VT-x rilevato."
     IOMMU_FLAG="intel_iommu=on"
+    echo "Sistema rilevato: Intel" | tee -a "$LOGFILE"
 elif grep -q "svm" /proc/cpuinfo; then
-    echo "Processore AMD con supporto AMD-V rilevato."
     IOMMU_FLAG="amd_iommu=on"
+    echo "Sistema rilevato: AMD" | tee -a "$LOGFILE"
 else
-    echo "Errore: Il processore non supporta la virtualizzazione!"
+    echo "Errore: Il processore non supporta la virtualizzazione!" | tee -a "$LOGFILE"
     exit 1
 fi
 
-#####################################################################################################################################
-
-# 2. Abilitare IOMMU nel GRUB
-GRUB_CONFIG="/etc/default/grub"
-if grep -q "$IOMMU_FLAG" $GRUB_CONFIG; then
-    echo "IOMMU è già abilitato nel GRUB."
+# Modifica GRUB se necessario
+if ! grep -q "$IOMMU_FLAG" "$GRUB_CONFIG"; then
+    echo "Abilitazione di IOMMU in GRUB..." | tee -a "$LOGFILE"
+    sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$IOMMU_FLAG iommu=pt /" "$GRUB_CONFIG"
+    update-grub | tee -a "$LOGFILE"
 else
-    echo "Abilitazione di IOMMU nel GRUB..."
-    sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$IOMMU_FLAG iommu=pt /" $GRUB_CONFIG
-    update-grub
+    echo "IOMMU è già attivo in GRUB. con $IOMMU_FLAG" | tee -a "$LOGFILE"
 fi
 
-#####################################################################################################################################
-
-# 3. Caricare i moduli necessari
+# 2. Aggiungere i moduli VFIO
+echo ">>> Configurazione dei moduli VFIO..." | tee -a "$LOGFILE"
 MODULES_FILE="/etc/modules"
 MODULES=("vfio" "vfio_iommu_type1" "vfio_pci" "vfio_virqfd")
 
-echo "Aggiunta dei moduli VFIO..."
 for mod in "${MODULES[@]}"; do
-    if ! grep -q "^$mod" $MODULES_FILE; then
-        echo "$mod" >> $MODULES_FILE
+    if ! grep -q "^$mod" "$MODULES_FILE"; then
+        echo "$mod" >> "$MODULES_FILE"
+        echo "Aggiunto modulo: $mod" | tee -a "$LOGFILE"
+    else
+        echo "Modulo già presente: $mod" | tee -a "$LOGFILE"
     fi
 done
 
-#####################################################################################################################################
-
-# 4.1 Blacklist dei moduli grafici non necessari
-#BLACKLIST_FILE="/etc/modprobe.d/blacklist.conf"
-#echo "Blacklist dei moduli non necessari..."
-#echo -e "blacklist nouveau\nblacklist nvidia\nblacklist radeon\nblacklist amdgpu" > $BLACKLIST_FILE
-
-# 4.2 Blacklist dei moduli WIFI e Bluetooth non necessari
+# 3 Blacklist dei moduli WIFI e Bluetooth non necessari
 BLACKLIST_FILE="/etc/modprobe.d/blacklist-mt7921e.conf"
 echo "Blacklist dei driver WIFI e bluetooth scheda di rete MEDIATEK MT7922 WIFI 6e"
 echo -e "# Driver WIFI\nblacklist mt7921e\nblacklist mt76\nblacklist mt76_connac_lib\nblacklist mt7921_common\nblacklist cfg80211\n\n# Driver Bluetooth\nblacklist btrtl\nblacklist btusb\nblacklist bluetooth\nblacklist btmtk\nblacklist mtd\nblacklist spi_nor\nblacklist cmdlinepart" > $BLACKLIST_FILE
-echo "Blacklist dei driver WIFI e Bluetooth completata."
+echo "Blacklist dei driver WIFI e Bluetooth completata. nel file $BLACKLIST_FILE"
 
-#####################################################################################################################################
+# 4. Identificare i dispositivi PCI disponibili per il passthrough
+echo ">>> Ricerca dei dispositivi PCI disponibili...tramite lspci -nn" | tee -a "$LOGFILE"
 
-# 5. Configurazione di VFIO per PCI Passthrough
-echo "Configurazione di vfio-pci..."
-echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/vfio.conf
-echo "Configurazione di Proxmox VE per PCI Passthrough..."
-
-# Identificare tutti i dispositivi PCI disponibili per il passthrough
-echo "Ricerca dei dispositivi PCI disponibili..."
-
-# Ottenere l'elenco completo delle periferiche PCI
 PCI_LIST=$(lspci -nn)
-PCI_IDS=()
-PCI_ADDRESSES=()
+declare -a PCI_IDS PCI_ADDRESSES
 
-# Creazione dell'elenco numerato
+INDEX=1
 if [ -z "$PCI_LIST" ]; then
-    echo "Nessun dispositivo PCI rilevato! Controlla con 'lspci -nn'."
+    echo "Errore: Nessun dispositivo PCI rilevato!" | tee -a "$LOGFILE"
     exit 1
 fi
 
-echo "Dispositivi PCI disponibili per il passthrough:"
-INDEX=1
+echo "Elenco dispositivi PCI:" | tee -a "$LOGFILE"
 while read -r LINE; do
     PCI_ADDR=$(echo "$LINE" | awk '{print $1}')
     PCI_ID=$(lspci -n -s "$PCI_ADDR" | awk '{print $3}')
@@ -85,38 +74,35 @@ while read -r LINE; do
     PCI_ADDRESSES+=("$PCI_ADDR")
     PCI_IDS+=("$PCI_ID")
 
-    echo "$INDEX) $LINE (ID: $PCI_ID)"
+    echo "$INDEX) $LINE (ID: $PCI_ID)" | tee -a "$LOGFILE"
     ((INDEX++))
 done <<< "$PCI_LIST"
 
-# Chiedere all'utente quale dispositivo selezionare
-echo -n "Seleziona il numero del dispositivo PCI da passare alla VM: "
-read -r SELECTION
+# Selezione multipla dei dispositivi per il passthrough
+echo -n "Seleziona i numeri dei dispositivi PCI da passare alla VM (separati da spazio): " | tee -a "$LOGFILE"
+read -r SELECTIONS
 
-# Controllo validità input
-if [[ ! "$SELECTION" =~ ^[0-9]+$ ]] || (( SELECTION < 1 || SELECTION >= INDEX )); then
-    echo "Selezione non valida! Assicurati di inserire un numero tra 1 e $((INDEX-1))."
-    exit 1
-fi
+# Verifica che gli input siano numeri validi
+SELECTED_IDS=()
+for SELECTION in $SELECTIONS; do
+    if [[ ! "$SELECTION" =~ ^[0-9]+$ ]] || (( SELECTION < 1 || SELECTION >= INDEX )); then
+        echo "Errore: Selezione non valida ($SELECTION)!" | tee -a "$LOGFILE"
+        exit 1
+    fi
+    SELECTED_IDS+=("${PCI_IDS[$((SELECTION-1))]}")
+done
 
-# Ricavare ID e indirizzo PCI scelto
-SELECTED_ID="${PCI_IDS[$((SELECTION-1))]}"
-SELECTED_ADDR="${PCI_ADDRESSES[$((SELECTION-1))]}"
+# 5. Configurazione VFIO con i dispositivi scelti
+VFIO_CONF="/etc/modprobe.d/vfio.conf"
 
-echo "Hai selezionato il dispositivo: $SELECTED_ADDR (ID: $SELECTED_ID)"
+echo ">>> Configurazione di VFIO per i dispositivi selezionati..." | tee -a "$LOGFILE"
+VFIO_IDS=$(IFS=,; echo "${SELECTED_IDS[*]}")
 
-# Scrivere la configurazione VFIO
-echo "options vfio-pci ids=$SELECTED_ID disable_idle_d3=1\noptions vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/vfio.conf
-echo "Configurazione aggiornata. Al riavvio del sistema verranno applicate le modifiche."
+echo "options vfio-pci ids=$VFIO_IDS disable_idle_d3=1" > "$VFIO_CONF"
+echo "Dispositivi configurati per il passthrough: $VFIO_IDS" | tee -a "$LOGFILE"
 
-######################################################################################################################################
+# 6. Aggiornare initramfs e riavviare
+echo ">>> Aggiornamento initramfs..." | tee -a "$LOGFILE"
+update-initramfs -u | tee -a "$LOGFILE"
 
-# 6. Configurazione delle opzioni per KVM
-echo "Abilitazione del supporto IOMMU in Proxmox..."
-echo -e "options kvm ignore_msrs=1\noptions kvm report_ignored_msrs=0" > /etc/modprobe.d/kvm.conf
-
-# 7. Applicazione delle modifiche
-echo "Aggiornamento initramfs..."
-update-initramfs -u
-
-echo "Configurazione completata! Riavviare il sistema per applicare le modifiche."
+echo "Operazione completata! Riavviare il sistema per applicare le modifiche." | tee -a "$LOGFILE"
