@@ -48,11 +48,11 @@ for mod in "${MODULES[@]}"; do
     fi
 done
 
-# 3 Blacklist dei moduli WIFI e Bluetooth non necessari
+# 3 Blacklist dei moduli WIFI e Bluetooth
 BLACKLIST_FILE="/etc/modprobe.d/blacklist-mt7921e.conf"
 echo "Blacklist dei driver WIFI e bluetooth scheda di rete MEDIATEK MT7922 WIFI 6e"
 echo -e "# Driver WIFI\nblacklist mt7921e\nblacklist mt76\nblacklist mt76_connac_lib\nblacklist mt7921_common\nblacklist cfg80211\n\n# Driver Bluetooth\nblacklist btrtl\nblacklist btusb\nblacklist bluetooth\nblacklist btmtk\nblacklist mtd\nblacklist spi_nor\nblacklist cmdlinepart" > $BLACKLIST_FILE
-echo "Blacklist dei driver WIFI e Bluetooth completata. nel file $BLACKLIST_FILE"
+echo "Blacklist dei driver WIFI e Bluetooth completata. Dati inseriti nel file $BLACKLIST_FILE. Se vuoi passare altre periferiche che selezionerai nel passaggio successivo, ricorda di aggiornare questo passaggio dello script."
 
 # 4. Identificare i dispositivi PCI disponibili per il passthrough
 echo ">>> Ricerca dei dispositivi PCI disponibili...tramite lspci -nn" | tee -a "$LOGFILE"
