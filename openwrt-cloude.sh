@@ -55,6 +55,7 @@ EOF
 
 header_info
 echo -e "Loading..."
+NEXTID=$(pvesh get /cluster/nextid)
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 log_message "1" "DEBUG" "Generated WAN MAC: ${GEN_MAC}"
