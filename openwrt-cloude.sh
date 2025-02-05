@@ -4,12 +4,42 @@
 SCRIPT_NAME=$(basename "$0")
 LOG_FILE="${SCRIPT_NAME%.*}.log"
 
+# Color definitions
+YW="\033[33m"
+BL="\033[36m"
+RD="\033[01;31m"
+GN="\033[1;92m"
+CL="\033[m"
+
 function log_message() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local section="$1"
     local type="$2" 
     local message="$3"
-    echo "[${timestamp}] [Section ${section}] [${type}] ${message}" | tee -a "$LOG_FILE"
+    
+    case $type in
+        "INFO")  color=$GN ;;
+        "DEBUG") color=$BL ;;
+        "ERROR") color=$RD ;;
+        *)       color=$CL ;;
+    esac
+    
+    echo -e "[${timestamp}] [Section ${section}] [${color}${type}${CL}] ${message}" | tee -a "$LOG_FILE"
+}
+
+# Add msg_info function that was missing
+function msg_info() {
+    local msg="$1"
+    echo -ne " ${HOLD} ${YW}${msg}..."
+    log_message "INFO" "INFO" "${msg}"
+}
+
+# Add send_line_to_vm function that was missing
+function send_line_to_vm() {
+    local line="$1"
+    log_message "INFO" "DEBUG" "Sending command to VM: ${line}"
+    # Implementation of send_line_to_vm goes here
+    # Your existing send_line_to_vm code...
 }
 
 # ================================================================
