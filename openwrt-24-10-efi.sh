@@ -57,11 +57,12 @@ else
   msg_ok "Download completato: $ISO_PATH"
 fi
 
-# Verifica l'integrità del file scaricato
+# Verifica l'integrità del file scaricato con SHA256
 msg_info "Verifica dell'integrità del file con SHA256..."
 SHA256SUM_ACTUAL=$(sha256sum "$ISO_PATH" | awk '{print $1}')
-if [[ "$SHA256SUM_EXPECTED" != "falso_sha256_hash_da_sostituire" && "$SHA256SUM_ACTUAL" != "$SHA256SUM_EXPECTED" ]]; then
-  msg_error "Checksum non valido! Il file potrebbe essere corrotto."
+if [[ "$SHA256SUM_ACTUAL" != "$SHA256SUM_EXPECTED" ]]; then
+  msg_error "Checksum non valido! Il file potrebbe essere corrotto. Scarica nuovamente."
+  rm -f "$ISO_PATH"
   exit 1
 fi
 msg_ok "Checksum valido!"
