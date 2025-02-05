@@ -88,8 +88,6 @@ function default_settings() {
   log_message "4" "DEBUG" "IP Settings - LAN IP: ${LAN_IP_ADDR}, Netmask: ${LAN_NETMASK}"
 }
 
-Would you like me to continue with the remaining sections?
-
 # ================================================================
 # 5 - Advanced Settings
 # ================================================================
