@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-#         Jon Spriggs (jontheniceguy)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Based on work from https://i12bretro.github.io/tutorials/0405.html
-
 function header_info {
   clear
   cat <<"EOF"
