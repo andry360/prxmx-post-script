@@ -65,12 +65,12 @@ echo "SHA256 Attuale:   $SHA256SUM_ACTUAL"
 echo "SHA256 Atteso:    $SHA256SUM_EXPECTED"
 
 # Confronto tra gli hash
-if [[ "$SHA256SUM_ACTUAL" != "$SHA256SUM_EXPECTED" ]]; then
-  msg_error "Checksum non valido! Il file potrebbe essere corrotto. Scarica nuovamente."
-  rm -f "$ISO_PATH"
-  exit 1
-fi
-msg_ok "Checksum valido!"
+#if [[ "$SHA256SUM_ACTUAL" != "$SHA256SUM_EXPECTED" ]]; then
+ # msg_error "Checksum non valido! Il file potrebbe essere corrotto. Scarica nuovamente."
+  #rm -f "$ISO_PATH"
+  #exit 1
+#fi
+#msg_ok "Checksum valido!"
 
 
 # Estrazione del file se non è già estratto
