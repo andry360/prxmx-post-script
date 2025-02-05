@@ -24,8 +24,8 @@ msg_info() { echo -e "\033[33m[INFO]\033[0m $1"; }
 msg_ok() { echo -e "\033[32m[OK]\033[0m $1"; }
 msg_error() { echo -e "\033[31m[ERROR]\033[0m $1"; }
 
-#1 Imposta ID della VM e parametri
-VMID=$(pvesh get /cluster/nextid)
+# 1. Imposta le variabili *PRIMA* di creare la VM
+VMID=$(pvesh get /cluster/nextid) # Ottieni l'ID *prima* di creare la VM
 HN="openwrt"
 CORE_COUNT="2"
 RAM_SIZE="2048"
@@ -34,27 +34,34 @@ STORAGE="local-lvm"  # Modifica se necessario
 ISO_DIR="/var/lib/vz/template/iso"
 ISO_FILE="openwrt-24.10.0-rc7-x86-64-generic-ext4-rootfs.img.gz"
 ISO_PATH="$ISO_DIR/$ISO_FILE"
-RAW_FILE="${ISO_PATH%.gz}"  # Nome del file senza .gz
-# URL fisso della versione desiderata di OpenWrt
+RAW_FILE="${ISO_PATH%.gz}"
 URL="https://downloads.openwrt.org/releases/24.10.0-rc7/targets/x86/64/$ISO_FILE"
-SHA256SUM_EXPECTED="5c7e20a3667d1c0367d8abf666a73c5d28fa1fa3d3fd1ec680e10a05dd88984f"  # Inserisci l'hash corretto
+SHA256SUM_EXPECTED="5c7e20a3667d1c0367d8abf666a73c5d28fa1fa3d3fd1ec680e10a05dd88984f"
 
-#1 Scarica l'immagine OpenWrt solo se non è già presente
+# 2. Scarica e verifica l'immagine
 if [[ ! -f "$ISO_PATH" ]]; then
-  echo "[INFO] 1 Scaricamento di OpenWrt..."
-  wget -O "$ISO_PATH" "$URL" || { echo "[ERROR] 1 Errore nel download."; exit 1; }
-  echo "[OK] 1 Download completato: $ISO_PATH"
+  msg_info "Scaricamento di OpenWrt..."
+  wget -O "$ISO_PATH" "$URL" || { msg_error "Errore nel download."; exit 1; }
+  # Aggiungi la verifica dell'hash SHA256
+  SHA256SUM_CALCULATED=$(sha256sum "$ISO_PATH" | awk '{print $1}')
+  if [[ "$SHA256SUM_CALCULATED" != "$SHA256SUM_EXPECTED" ]]; then
+    msg_error "Errore: Hash SHA256 non corrispondente. File corrotto."
+    rm "$ISO_PATH"  # Cancella il file corrotto
+    exit 1
+  fi
+  msg_ok "Download completato e verificato: $ISO_PATH"
 fi
 
-#2 Estrazione se non è già stato estratto
+# 3. Estrai l'immagine
 if [[ ! -f "$RAW_FILE" ]]; then
-  echo "[INFO] 2 Estrazione dell'immagine OpenWrt..."
-  gunzip -f "$ISO_PATH" || { echo "[ERROR] 2 Errore nell'estrazione."; exit 1; }
-  echo "[OK] 2 File estratto: $RAW_FILE"
+  msg_info "Estrazione dell'immagine OpenWrt..."
+  gunzip -f "$ISO_PATH" || { msg_error "Errore nell'estrazione."; exit 1; }
+  msg_ok "File estratto: $RAW_FILE"
 fi
 
-#3 Creazione della VM con UEFI
-msg_info "3 Creazione della VM UEFI..."
+
+# 4. Crea la VM
+msg_info "Creazione della VM UEFI..."
 qm create $VMID \
   -name $HN \
   -memory $RAM_SIZE \
@@ -68,30 +75,26 @@ qm create $VMID \
   -efidisk0 $STORAGE:vm-$VMID-efi,size=4M,efitype=4m \
   -bios ovmf \
   -ostype l26
-msg_ok "3 VM $HN ($VMID) creata con firmware UEFI."
+msg_ok "VM $HN ($VMID) creata con firmware UEFI."
 
-#4 Importa il disco in `local-lvm`
-echo "[INFO] 4 Importazione del disco OpenWrt..."
-qm importdisk $VMID $RAW_FILE $STORAGE --format raw || { echo "[ERROR] 4.1 Importazione disco fallita."; exit 1; }
-qm set $VMID -scsi0 $STORAGE:vm-$VMID-disk-0 || { echo "[ERROR] 4.2 Assegnazione disco fallita."; exit 1; }
-echo "[OK] 4 Disco OpenWrt importato in $STORAGE."
+# 5. Importa il disco *dopo* aver creato la VM
+msg_info "Importazione del disco OpenWrt..."
+qm importdisk $VMID $RAW_FILE $STORAGE --format raw || { msg_error "Importazione disco fallita."; exit 1; }
+qm set $VMID -scsi0 $STORAGE:vm-$VMID-disk-0 || { msg_error "Assegnazione disco fallita."; exit 1; }
+msg_ok "Disco OpenWrt importato in $STORAGE."
 
-#5.1 Identifica l'ID della scheda Wi-Fi PCIe
+# 6. Wi-Fi Passthrough (come nel tuo script originale)
 WIFI_PCI_ID=$(lspci -nn | grep -i 'network' | awk '{print $1}')
 if [[ -z "$WIFI_PCI_ID" ]]; then
-  msg_error "5.1 Nessuna scheda Wi-Fi PCIe trovata. Assicurati che sia installata correttamente."
+  msg_error "Nessuna scheda Wi-Fi PCIe trovata."
   exit 1
 fi
-msg_ok "5.1 Scheda Wi-Fi trovata con ID: $WIFI_PCI_ID"
-
-#5.2 Abilita il passthrough della scheda Wi-Fi
-msg_info "5.2 Configurazione del passthrough PCIe per la scheda Wi-Fi..."
+msg_ok "Scheda Wi-Fi trovata con ID: $WIFI_PCI_ID"
+msg_info "Configurazione del passthrough PCIe..."
 qm set $VMID -hostpci0 $WIFI_PCI_ID,pcie=1
-msg_ok "5.2 Scheda Wi-Fi assegnata alla VM."
+msg_ok "Scheda Wi-Fi assegnata alla VM."
 
-#7 Avvia la VM
+# 7. Avvia la VM
 msg_info "Avvio della VM..."
 qm start $VMID
 msg_ok "VM avviata con successo."
-
-
