@@ -119,7 +119,7 @@ function send_line_to_vm() {
     "!") character="shift-1" ;;
     "@") character="shift-2" ;;
     "#") character="shift-3" ;;
-    '$') character="shift-4" ;;
+    "$") character="shift-4" ;;
     "%") character="shift-5" ;;
     "^") character="shift-6" ;;
     "&") character="shift-7" ;;
