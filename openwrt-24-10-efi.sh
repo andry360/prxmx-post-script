@@ -1,100 +1,95 @@
 #!/usr/bin/env bash
 
-# Imposta il nome del file di log (stesso nome dello script con estensione .log)
+# ===================================================================
+# Script per la creazione di una VM OpenWRT su Proxmox con UEFI
+# Configurazione: WAN (vmbr0 - DHCP), LAN (vmbr1 - 192.168.1.254)
+# Passthrough della scheda WiFi
+# ===================================================================
+
+# Impostazioni generali
+VMID=$(pvesh get /cluster/nextid)    # Ottiene il prossimo ID VM disponibile
+VM_NAME="OpenWRT"
+IMAGE_URL="https://downloads.openwrt.org/releases/24.10.0-rc7/targets/x86/64/openwrt-24.10.0-rc7-x86-64-generic-ext4-combined-efi.img.gz"
+STORAGE="local-lvm"  # Cambia se necessario
 LOG_FILE="$(basename "$0" .sh).log"
-exec > >(tee -a "$LOG_FILE") 2>&1
 
-function header_info {
-  clear
-  cat <<"EOF"
-   ____                 _       __     __
-  / __ \____  ___  ____| |     / /____/ /_
- / / / / __ \/ _ \/ __ \ | /| / / ___/ __/
- / /_/ / /_/ /  __/ / / / |/ |/ / /  / /_
- \____/ .___/\___/_/ /_/|__/|__/_/   \__/
-    /_/ W I R E L E S S   F R E E D O M
+# Pulizia file di log precedente
+echo "==== Inizio script: $(date) ====" > "$LOG_FILE"
 
-EOF
+# ================================================================
+# Funzioni di logging
+# ================================================================
+log_info() {
+    echo -e "[INFO] $1" | tee -a "$LOG_FILE"
 }
-header_info
-echo -e "Loading..."
-
-#0.1 Funzioni di logging con colori
-msg_info() { echo -e "\033[33m[INFO]\033[0m $1"; }
-msg_ok() { echo -e "\033[32m[OK]\033[0m $1"; }
-msg_error() { echo -e "\033[31m[ERROR]\033[0m $1"; }
-
-# 1. Imposta le variabili *PRIMA* di creare la VM
-VMID=$(pvesh get /cluster/nextid) # Ottieni l'ID *prima* di creare la VM
-HN="openwrt"
-CORE_COUNT="2"
-RAM_SIZE="2048"
-DISK_SIZE="512M"
-STORAGE="local-lvm"  # Modifica se necessario
-ISO_DIR="/var/lib/vz/template/iso"
-ISO_FILE="openwrt-24.10.0-rc7-x86-64-generic-ext4-rootfs.img.gz"
-ISO_PATH="$ISO_DIR/$ISO_FILE"
-RAW_FILE="${ISO_PATH%.gz}"
-URL="https://downloads.openwrt.org/releases/24.10.0-rc7/targets/x86/64/$ISO_FILE"
-SHA256SUM_EXPECTED="5c7e20a3667d1c0367d8abf666a73c5d28fa1fa3d3fd1ec680e10a05dd88984f"
-
-# 2. Scarica e verifica l'immagine
-if [[ ! -f "$ISO_PATH" ]]; then
-  msg_info "Scaricamento di OpenWrt..."
-  wget -O "$ISO_PATH" "$URL" || { msg_error "Errore nel download."; exit 1; }
-  # Aggiungi la verifica dell'hash SHA256
-  SHA256SUM_CALCULATED=$(sha256sum "$ISO_PATH" | awk '{print $1}')
-  if [[ "$SHA256SUM_CALCULATED" != "$SHA256SUM_EXPECTED" ]]; then
-    msg_error "Errore: Hash SHA256 non corrispondente. File corrotto."
-    rm "$ISO_PATH"  # Cancella il file corrotto
+log_error() {
+    echo -e "[ERROR] $1" | tee -a "$LOG_FILE" >&2
     exit 1
-  fi
-  msg_ok "Download completato e verificato: $ISO_PATH"
+}
+
+# ================================================================
+# Verifica dell'ambiente
+# ================================================================
+log_info "Verifica versione di Proxmox..."
+pveversion | grep -q "pve-manager" || log_error "Proxmox non rilevato!"
+
+log_info "Verifica supporto UEFI..."
+if ! [ -f "/usr/share/OVMF/OVMF_CODE.fd" ]; then
+    log_error "UEFI non disponibile su Proxmox! Installa il pacchetto ed esegui nuovamente lo script."
 fi
 
-# 3. Estrai l'immagine
-if [[ ! -f "$RAW_FILE" ]]; then
-  msg_info "Estrazione dell'immagine OpenWrt..."
-  gunzip -f "$ISO_PATH" || { msg_error "Errore nell'estrazione."; exit 1; }
-  msg_ok "File estratto: $RAW_FILE"
+# ================================================================
+# Download e preparazione immagine OpenWRT
+# ================================================================
+log_info "Scaricamento immagine OpenWRT..."
+wget -q --show-progress "$IMAGE_URL" -O openwrt.img.gz || log_error "Download fallito!"
+gunzip -f openwrt.img.gz || log_error "Estrazione fallita!"
+
+log_info "Espansione immagine a 512MB..."
+qemu-img resize openwrt.img 512M || log_error "Errore nel ridimensionamento immagine!"
+
+# ================================================================
+# Creazione VM su Proxmox
+# ================================================================
+log_info "Creazione VM con ID $VMID..."
+qm create "$VMID" --name "$VM_NAME" --memory 512 --cores 2 --net0 virtio,bridge=vmbr0 \
+    --bios ovmf --efidisk0 "$STORAGE":vm-"$VMID"-disk-0,efitype=4m,size=4M \
+    --machine q35 --serial0 socket --boot order=scsi0 || log_error "Errore nella creazione della VM"
+
+log_info "Importazione disco OpenWRT..."
+qm importdisk "$VMID" openwrt.img "$STORAGE" --format raw || log_error "Errore nell'importazione del disco!"
+
+log_info "Collegamento disco alla VM..."
+qm set "$VMID" --scsi0 "$STORAGE":vm-"$VMID"-disk-1 || log_error "Errore nel collegamento del disco!"
+
+# ================================================================
+# Configurazione della rete
+# ================================================================
+log_info "Configurazione rete: WAN su vmbr0, LAN su vmbr1..."
+qm set "$VMID" --net1 virtio,bridge=vmbr1 || log_error "Errore nella configurazione di rete!"
+
+# ================================================================
+# Passthrough della scheda WiFi
+# ================================================================
+log_info "Identificazione della scheda WiFi PCI..."
+WIFI_PCI=$(lspci -nn | grep -i "network controller" | awk '{print $1}' | head -n1)
+
+if [ -z "$WIFI_PCI" ]; then
+    log_error "Nessuna scheda WiFi rilevata!"
+else
+    log_info "Scheda WiFi rilevata su PCI: $WIFI_PCI"
+    WIFI_PCI_ID=$(lspci -n -s "$WIFI_PCI" | awk '{print $3}')
+    echo "options vfio-pci ids=$WIFI_PCI_ID" > /etc/modprobe.d/vfio.conf
+    update-initramfs -u
+    qm set "$VMID" --hostpci0 "$WIFI_PCI",pcie=1 || log_error "Errore nel passthrough della scheda WiFi!"
+    log_info "Passthrough WiFi completato!"
 fi
 
+# ================================================================
+# Avvio VM
+# ================================================================
+log_info "Avvio della VM OpenWRT..."
+qm start "$VMID" || log_error "Errore nell'avvio della VM!"
 
-# 4. Crea la VM
-msg_info "Creazione della VM UEFI..."
-qm create $VMID \
-  -name $HN \
-  -memory $RAM_SIZE \
-  -cores $CORE_COUNT \
-  -cpu host \
-  -net0 virtio,bridge=vmbr0 \
-  -scsihw virtio-scsi-pci \
-  -scsi0 $STORAGE:vm-$VMID-disk-0,size=$DISK_SIZE \
-  -boot order=scsi0 \
-  -machine q35 \
-  -efidisk0 $STORAGE:vm-$VMID-efi,size=4M,efitype=4m \
-  -bios ovmf \
-  -ostype l26
-msg_ok "VM $HN ($VMID) creata con firmware UEFI."
-
-# 5. Importa il disco *dopo* aver creato la VM
-msg_info "Importazione del disco OpenWrt..."
-qm importdisk $VMID $RAW_FILE $STORAGE --format raw || { msg_error "Importazione disco fallita."; exit 1; }
-qm set $VMID -scsi0 $STORAGE:vm-$VMID-disk-0 || { msg_error "Assegnazione disco fallita."; exit 1; }
-msg_ok "Disco OpenWrt importato in $STORAGE."
-
-# 6. Wi-Fi Passthrough (come nel tuo script originale)
-WIFI_PCI_ID=$(lspci -nn | grep -i 'network' | awk '{print $1}')
-if [[ -z "$WIFI_PCI_ID" ]]; then
-  msg_error "Nessuna scheda Wi-Fi PCIe trovata."
-  exit 1
-fi
-msg_ok "Scheda Wi-Fi trovata con ID: $WIFI_PCI_ID"
-msg_info "Configurazione del passthrough PCIe..."
-qm set $VMID -hostpci0 $WIFI_PCI_ID,pcie=1
-msg_ok "Scheda Wi-Fi assegnata alla VM."
-
-# 7. Avvia la VM
-msg_info "Avvio della VM..."
-qm start $VMID
-msg_ok "VM avviata con successo."
+log_info "Script completato con successo!"
+echo "==== Fine script: $(date) ====" >> "$LOG_FILE"
