@@ -523,7 +523,7 @@ qm set $VMID \
 # ================================================================
 echo "Verifica della scheda WiFi PCI..."
 WIFI_PCI=$(lspci -nn | grep -i network | grep -oE '^[0-9a-f:.]+' | head -n 1)
-<if [[ -n "$WIFI_PCI" ]]; then
+if [[ -n "$WIFI_PCI" ]]; then
     echo "Trovata scheda WiFi: $WIFI_PCI"
     qm set $VM_ID --hostpci0 $WIFI_PCI,pcie=1 2>&1
 else
