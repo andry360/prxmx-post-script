@@ -498,6 +498,8 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
+
+
 # ================================================================
 # Creazione VM
 # ================================================================
@@ -516,6 +518,17 @@ qm set $VMID \
   -description "<div align='center'><a href='https://Helper-Scripts.com'><img src='https://raw.githubusercontent.com/tteck/Proxmox/main/misc/images/logo-81x112.png'/></a>
   # OpenWRT
   </div>" >/dev/null
+# ================================================================
+# Passtrough scheda di rete
+# ================================================================
+echo "Verifica della scheda WiFi PCI..."
+WIFI_PCI=$(lspci -nn | grep -i network | grep -oE '^[0-9a-f:.]+' | head -n 1)
+<if [[ -n "$WIFI_PCI" ]]; then
+    echo "Trovata scheda WiFi: $WIFI_PCI"
+    qm set $VM_ID --hostpci0 $WIFI_PCI,pcie=1 2>&1
+else
+    echo "⚠️ Nessuna scheda WiFi PCI trovata!" 
+fi
 
 # ================================================================
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
