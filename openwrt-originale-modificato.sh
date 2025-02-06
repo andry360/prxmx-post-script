@@ -226,7 +226,7 @@ function default_settings() {
   echo -e "${DGN}Using Storage Pool: ${BGN}${STORAGE_POOL}${CL}"
   echo -e "${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
   echo -e "${BL}Creating an OpenWRT VM using the above default settings${CL}"
-
+}
 
 # ================================================================
 # Funzione settaggi avanzati VM
