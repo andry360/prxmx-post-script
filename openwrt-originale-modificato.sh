@@ -462,8 +462,7 @@ msg_info "Getting URL for OpenWrt Disk Image"
 # Download openwrt
 # ================================================================
 response=$(curl -s https://openwrt.org)
-betaversion=$(echo "$response" | sed -n 's/.*Current beta release - OpenWrt \([0-9.]\+\).*/\1/p')
-URL="https://downloads.openwrt.org/releases/$betaversion/targets/x86/64/openwrt-$betaversion-x86-64-generic-ext4-combined.img.gz"
+URL="https://mirror-03.infra.openwrt.org/releases/24.10.0-rc7/targets/x86/64/openwrt-24.10.0-rc7-x86-64-generic-ext4-combined-efi.img.gz"
 stableversion=$(echo "$response" | sed -n 's/.*Current stable release - OpenWrt \([0-9.]\+\).*/\1/p')
 #URL="https://downloads.openwrt.org/releases/$stableversion/targets/x86/64/openwrt-$stableversion-x86-64-generic-ext4-combined.img.gz"
 
