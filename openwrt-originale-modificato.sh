@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 # ================================================================
 # 1
 # ================================================================
@@ -10,25 +9,34 @@ function header_info {
 OPENWRT VM CREATION SCRIPT
 EOF
 }
+# Richiamo funzione
 header_info
+
 echo -e "Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 NEXTID=$(pvesh get /cluster/nextid)
 # ================================================================
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
-HA=$(echo "\033[1;34m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD="-"
+YW=$(echo "\033[33m")  # Yellow
+BL=$(echo "\033[36m") # Blue
+HA=$(echo "\033[1;34m") # High Intensity Blue
+RD=$(echo "\033[01;31m") # Red
+BGN=$(echo "\033[4;92m") #
+GN=$(echo "\033[1;92m") #
+DGN=$(echo "\033[32m") #
+CL=$(echo "\033[m") # 
+BFR="\\r\\033[K" #
+HOLD="-" #
 CM="${GN}✓${CL}"
-CROSS="${RD}✗${CL}"
+CROSS="${RD}✗${CL}" #
+# Questo comando imposta diverse opzioni per la shell Bash, influenzando il modo in cui lo script gestisce gli errori e le pipeline di comandi
+# E= Lo script termina immediatamente se un comando fallisce (ovvero, restituisce un codice di uscita diverso da zero)
+# e= Quando un comando fallisce, viene visualizzato il comando stesso prima che lo script termini. Questo aiuta a capire quale comando ha causato l'errore.
+# o pipefail= Se un comando in una pipeline fallisce, l'intera pipeline viene considerata fallita. Normalmente, in una pipeline (ad esempio, comando1 | comando2), se comando2 fallisce ma comando1 ha successo, la pipeline viene considerata riuscita. Questa opzione cambia tale comportamento.
 set -Eeo pipefail
+# imposta una trappola per il segnale di errore (ERR)
+# Specifica il comando da eseguire quando viene catturato il segnale ERR. In questo caso, viene chiamata la funzione error_handler
+# LINENO è la variabile Bash che contiene il numero di riga del comando che ha causato l'errore e BASH_COMMAND è quella che contiene il comando che l'ha causato.
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 
@@ -59,6 +67,7 @@ function cleanup() {
   popd >/dev/null
   rm -rf $TEMP_DIR
 }
+
 
 # ================================================================
 # Creazione directory temporanea
@@ -180,11 +189,11 @@ function exit-script() {
 }
 
 # ================================================================
-# Funzione settaggi default
+# Funzione settaggi default VM
 # ================================================================
 function default_settings() {
   VMID=$NEXTID
-  HN=openwrt
+  HN="openwrt"
   CORE_COUNT="2"
   RAM_SIZE="512"
   BRG="vmbr0"
@@ -197,6 +206,9 @@ function default_settings() {
   LAN_VLAN=""
   MTU=""
   START_VM="yes"
+  EFI_DISK="yes"  # Attiva disco EFI
+  STORAGE_POOL="local-lvm"  # Nome dello storage per il disco EFI
+
   echo -e "${DGN}Using Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${DGN}Using Hostname: ${BGN}${HN}${CL}"
   echo -e "${DGN}Allocated Cores: ${BGN}${CORE_COUNT}${CL}"
@@ -210,12 +222,14 @@ function default_settings() {
   echo -e "${DGN}Using LAN IP Address: ${BGN}${LAN_IP_ADDR}${CL}"
   echo -e "${DGN}Using LAN NETMASK: ${BGN}${LAN_NETMASK}${CL}"
   echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${BL}Creating a OpenWRT VM using the above default settings${CL}"
-}
+  echo -e "${DGN}Using EFI Boot: ${BGN}${EFI_DISK}${CL}"
+  echo -e "${DGN}Using Storage Pool: ${BGN}${STORAGE_POOL}${CL}"
+  echo -e "${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
+  echo -e "${BL}Creating an OpenWRT VM using the above default settings${CL}"
+
 
 # ================================================================
-# Funzione settaggi avanzati
+# Funzione settaggi avanzati VM
 # ================================================================
 
 function advanced_settings() {
@@ -235,6 +249,24 @@ function advanced_settings() {
       exit-script
     fi
   done
+
+  # Aggiunta opzione per il tipo di boot (BIOS o UEFI)
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "Enable EFI Boot" --yesno "Use UEFI boot (OVMF)?" 10 58); then
+    USE_EFI="yes"
+  else
+    USE_EFI="no"
+  fi
+  echo -e "${DGN}Using EFI Boot: ${BGN}$USE_EFI${CL}"
+
+  # Aggiunta opzione per lo storage pool
+  if STORAGE_POOL=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Storage Pool (default: local-lvm)" 8 58 local-lvm --title "STORAGE POOL" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z "$STORAGE_POOL" ]; then
+      STORAGE_POOL="local-lvm"
+    fi
+    echo -e "${DGN}Using Storage Pool: ${BGN}$STORAGE_POOL${CL}"
+  else
+    exit-script
+  fi
 
   if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 openwrt --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
@@ -392,7 +424,6 @@ pve_check
 ssh_check
 start_script
 
-
 # ================================================================
 # Validazione storage
 # ================================================================
@@ -476,16 +507,17 @@ qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
-  -efidisk0 ${DISK0_REF},efitype=4m,size=4M \
+  -bios ovmf \                          # Abilita UEFI
+  -machine q35 \                        # Abilita Q35 
+  -efidisk0 ${DISK0_REF},efitype=4m,size=4M \     # Allocazione dello storage EFI (4MB per le variabili NVRAM)
   -scsi0 ${DISK1_REF},size=512M \
   -boot order=scsi0 \
   -tags proxmox-helper-scripts \
   -description "<div align='center'><a href='https://Helper-Scripts.com'><img src='https://raw.githubusercontent.com/tteck/Proxmox/main/misc/images/logo-81x112.png'/></a>
-
   # OpenWRT
-
-  <a href='https://ko-fi.com/D1D7EP4GF'><img src='https://img.shields.io/badge/&#x2615;-Buy me a coffee-blue' /></a>
   </div>" >/dev/null
+
+# ================================================================
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
 msg_info "OpenWrt is being started in order to configure the network interfaces."
 qm start $VMID
