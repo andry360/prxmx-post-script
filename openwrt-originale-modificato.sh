@@ -508,9 +508,9 @@ qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
-  -bios ovmf \                          # Abilita UEFI
-  -machine q35 \                        # Abilita Q35 
-  -efidisk0 ${DISK0_REF},efitype=4m,size=4M \     # Allocazione dello storage EFI (4MB per le variabili NVRAM)
+  -bios ovmf \
+  -machine q35 \
+  -efidisk0 ${DISK0_REF},efitype=4m,size=4M \
   -scsi0 ${DISK1_REF},size=512M \
   -boot order=scsi0 \
   -tags proxmox-helper-scripts \
