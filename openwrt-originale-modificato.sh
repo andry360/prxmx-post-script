@@ -419,9 +419,9 @@ function start_script() {
   fi
 }
 
-arch_check
+
 pve_check
-ssh_check
+
 start_script
 
 # ================================================================
