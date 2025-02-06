@@ -468,7 +468,15 @@ stableversion=$(echo "$response" | sed -n 's/.*Current stable release - OpenWrt 
 
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-wget -q --show-progress $URL
+# Controlla se il file è già scaricato
+FILE=$(basename "$URL")
+if [ -f "$FILE" ]; then
+  msg_ok "File ${CL}${BL}$FILE${CL} già presente. Salto il download."
+else
+  wget -q --show-progress "$URL"
+  echo -en "\e[1A\e[0K"
+  msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
+fi
 echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
@@ -496,8 +504,6 @@ for i in {0,1}; do
   eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
-
-
 
 # ================================================================
 # Creazione VM
