@@ -206,6 +206,7 @@ function default_settings() {
   LAN_VLAN=""
   MTU=""
   START_VM="yes"
+  EFI_DISK="yes"  # Attiva disco EFI
   STORAGE_POOL="local-lvm"  # Nome dello storage per il disco EFI
 
   echo -e "${DGN}Using Virtual Machine ID: ${BGN}${VMID}${CL}"
