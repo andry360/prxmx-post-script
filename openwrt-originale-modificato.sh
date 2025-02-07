@@ -557,8 +557,10 @@ send_line_to_vm "uci set firewall.@zone[1].forward='ACCEPT'"
 send_line_to_vm "uci commit"
 send_line_to_vm "halt"
 msg_ok "Network interfaces have been successfully configured."
+msg_info "VM is being stopped."
 until qm status $VMID | grep -q "stopped"; do
   sleep 2
+  msg_info "VM is not stopped yet. Waiting..."
 done
 msg_info "Bridge interfaces are being added."
 qm set $VMID \
