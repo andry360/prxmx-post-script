@@ -511,18 +511,22 @@ done
 msg_info "Creating OpenWrt VM"
 qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci --tablet 0
-# pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null   forse non serve neanche questo
+pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -bios ovmf \
   -machine q35 \
-  # -efidisk0 ${DISK0_REF},efitype=4m,size=4M \ L'efidisk in openWRT non è necessario. Lascio il comando commentato per conoscenza
+  -efidisk0 ${DISK0_REF},efitype=4m,size=4M \
   -scsi0 ${DISK1_REF},size=512M \
   -boot order=scsi0 \
   -tags proxmox-helper-scripts \
   -description "<div align='center'><a href='https://Helper-Scripts.com'><img src='https://raw.githubusercontent.com/tteck/Proxmox/main/misc/images/logo-81x112.png'/></a>
   # OpenWRT
   </div>" >/dev/null
+
+# Dato che senza l'efidisk ricevo un errore, ma considerando anche il fatto che dopo aver creato la VM questa non si avvia con l'efidisk...lo rimuovo subito dop averla creata.
+qm set $VMID -delete efidisk0
+
 # ================================================================
 # Passtrough scheda di rete
 # ================================================================
@@ -530,7 +534,7 @@ echo "Verifica della scheda WiFi PCI..."
 WIFI_PCI=$(lspci -nn | grep -i network | grep -oE '^[0-9a-f:.]+' | head -n 1)
 if [[ -n "$WIFI_PCI" ]]; then
     echo "Trovata scheda WiFi: $WIFI_PCI"
-    #qm set $VMID --hostpci0 $WIFI_PCI,pcie=1 2>&1     commentato perche' non funziona momentaneamente
+    #qm set $VMID --hostpci0 $WIFI_PCI,pcie=1 2>&1     commentato perche' non funziona momentaneamente il passtrough
 else
     echo "⚠️ Nessuna scheda WiFi PCI trovata!" 
 fi
