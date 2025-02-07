@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 
-# ================================================================
-# 1
-# ================================================================
 function header_info {
   clear
   cat <<"EOF"
 OPENWRT VM CREATION SCRIPT
 EOF
 }
-# Richiamo funzione
+# Richiamo funzione header_info
 header_info
 
 echo -e "Loading..."
@@ -419,9 +416,7 @@ function start_script() {
   fi
 }
 
-
 pve_check
-
 start_script
 
 # ================================================================
@@ -539,6 +534,8 @@ else
     echo "⚠️ Nessuna scheda WiFi PCI trovata!" 
 fi
 
+# ================================================================
+# Settaggio VM con i parametri creati in precedenza tramite UCI
 # ================================================================
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
 msg_info "OpenWrt is being started in order to configure the network interfaces."

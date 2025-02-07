@@ -13,7 +13,7 @@ echo ">>> Configurazione di IOMMU nel bootloader GRUB..." | tee -a "$LOGFILE"
 
 GRUB_CONFIG="/etc/default/grub"
 
-# Determina se è un sistema Intel o AMD
+# 1.1. Determina se è un sistema Intel o AMD
 if grep -q "vmx" /proc/cpuinfo; then
     IOMMU_FLAG="intel_iommu=on"
     echo "Sistema rilevato: Intel" | tee -a "$LOGFILE"
@@ -25,7 +25,7 @@ else
     exit 1
 fi
 
-# Modifica GRUB se necessario
+# 1.2 Modifica GRUB se necessario
 if ! grep -q "$IOMMU_FLAG" "$GRUB_CONFIG"; then
     echo "Abilitazione di IOMMU in GRUB..." | tee -a "$LOGFILE"
     sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$IOMMU_FLAG iommu=pt /" "$GRUB_CONFIG"
@@ -34,7 +34,7 @@ else
     echo "IOMMU è già attivo in GRUB. con $IOMMU_FLAG" | tee -a "$LOGFILE"
 fi
 
-# 2. Aggiungere i moduli VFIO
+# 2 Aggiungere i moduli VFIO
 echo ">>> Configurazione dei moduli VFIO..." | tee -a "$LOGFILE"
 MODULES_FILE="/etc/modules"
 MODULES=("vfio" "vfio_iommu_type1" "vfio_pci" "vfio_virqfd")

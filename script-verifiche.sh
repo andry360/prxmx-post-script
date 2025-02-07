@@ -1,3 +1,4 @@
+#In questo file inserisco i comandi utili allo scopo di debug
 #Verificare se IOMMU è attivo
 dmesg | grep -e DMAR -e IOMMU
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+#Questo file serve per testare il funzionamento del script
+
 
 echo "Configurazione di Proxmox VE per PCI Passthrough..."
 
