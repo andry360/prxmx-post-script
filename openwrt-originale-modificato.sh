@@ -206,7 +206,6 @@ function default_settings() {
   LAN_VLAN=""
   MTU=""
   START_VM="yes"
-  EFI_DISK="yes"  # Attiva disco EFI
   STORAGE_POOL="local-lvm"  # Nome dello storage per il disco EFI
 
   echo -e "${DGN}Using Virtual Machine ID: ${BGN}${VMID}${CL}"
@@ -516,7 +515,7 @@ qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -bios ovmf \
   -machine q35 \
-  -efidisk0 ${DISK0_REF},efitype=4m,size=4M \
+  # -efidisk0 ${DISK0_REF},efitype=4m,size=4M \ L'efidisk in openWRT non è necessario. Lascio il comando commentato per conoscenza
   -scsi0 ${DISK1_REF},size=512M \
   -boot order=scsi0 \
   -tags proxmox-helper-scripts \
