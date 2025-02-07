@@ -578,6 +578,6 @@ if [ "$START_VM" == "yes" ]; then
 fi
 VLAN_FINISH=""
 if [ "$VLAN" == "" ] && [ "$VLAN2" != "999" ]; then
-  VLAN_FINISH=" Please remember to adjust the VLAN tags to suit your network."
+  VLAN_FINISH=" Please adjust the VLAN tags to suit your network."
 fi
-msg_ok "Completed Successfully!\n${VLAN_FINISH}"
+msg_ok "Completed Successfully! remember to install WLAN drivers (kmod-mt7921-firmware in my case) and wpad drivers.\n${VLAN_FINISH}"
