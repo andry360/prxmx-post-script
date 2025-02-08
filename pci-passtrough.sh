@@ -98,11 +98,15 @@ VFIO_CONF="/etc/modprobe.d/vfio.conf"
 echo ">>> Configurazione di VFIO per i dispositivi selezionati..." | tee -a "$LOGFILE"
 VFIO_IDS=$(IFS=,; echo "${SELECTED_IDS[*]}")
 
+# il disable_idle_d3=1 è un parametro aggiuntivo per disabilitare lo stato di (idle) dei dispositivi. Assicura quindi che la scheda di rete non vada in sospensione.
 echo "options vfio-pci ids=$VFIO_IDS disable_idle_d3=1" > "$VFIO_CONF"
 echo "Dispositivi configurati per il passthrough: $VFIO_IDS" | tee -a "$LOGFILE"
 
 # 6. Aggiornare initramfs e riavviare
 echo ">>> Aggiornamento initramfs..." | tee -a "$LOGFILE"
 update-initramfs -u | tee -a "$LOGFILE"
+
+# 7.  La scheda di rete MEDIATEK MT7922 PCIe supporta il reset a livello di bus invece del FLR standard. Forzo quindi il reset a livello di bus:
+echo 'ACTION=="add", SUBSYSTEM=="pci", ATTR{reset_method}="bus"' | tee /etc/udev/rules.d/99-vfio.rules
 
 echo "Operazione completata! Riavviare il sistema per applicare le modifiche." | tee -a "$LOGFILE"

@@ -1,4 +1,8 @@
 #In questo file inserisco i comandi utili allo scopo di debug
+
+#----------------------------------------------------------------------------
+# proxmox
+#----------------------------------------------------------------------------
 #Verificare se IOMMU è attivo
 dmesg | grep -e DMAR -e IOMMU
 
@@ -11,3 +15,22 @@ lspci -k | grep -A 3 -i 'ethernet\|network'
 
 #Verifica configurazione di rete Proxmox
 nano /etc/network/interfaces
+
+#controlla log di sistema delle VM. Da avviare prima dell'avvio della VM
+journalctl -f
+
+
+
+#----------------------------------------------------------------------------
+# openWRT
+#----------------------------------------------------------------------------
+nano /etc/config/network/
+
+nano /etc/config/wireless
+
+# Con questi comandi ho avviato la scheda wifi
+wifi down
+wifi up
+
+
+
