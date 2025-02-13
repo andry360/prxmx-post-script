@@ -2,10 +2,10 @@
 
 # Elenco degli script
 scripts=(
-    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/pxmx-post-install.sh Script post-installazione"
-    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/pxmx-set-interfaces.sh Script settaggio Network"
-    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/pci-passtrough.sh Script predisposizione PCI Passtrough"
-    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/openwrt-24-10-v1.sh Script creazione VM openWRT 24.10"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/1_pxmx-post-install.sh Script post-installazione"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/2_pxmx-set-interfaces.sh Script settaggio Network"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/3_pci-passtrough.sh Script predisposizione PCI Passtrough"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/4_openwrt-24-10-v1.sh Script creazione VM openWRT 24.10"
 )
 
 # Mostra l'elenco numerato

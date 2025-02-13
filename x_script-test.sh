@@ -1,10 +1,9 @@
 #!/bin/bash
-#Questo file serve per testare il funzionamento del script
-
+#Questo file serve per testare il funzionamento degli script
 
 echo "Configurazione di Proxmox VE per PCI Passthrough..."
 
-# 6. Configurazione delle opzioni per KVM e VFIO con selezione interattiva
+# Configurazione delle opzioni per KVM e VFIO con selezione interattiva
 echo "Abilitazione del supporto IOMMU in Proxmox..."
 
 # Creazione del file di configurazione per KVM
