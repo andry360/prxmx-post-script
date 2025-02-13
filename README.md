@@ -32,7 +32,15 @@ Ad esempio, gli OLT Huawei controllano solo il numero seriale GPON, mentre quell
 Pertanto, per evitare problemi, è consigliabile clonare completamente i parametri dell'ONT, assicurandosi così che tutto corrisponda.
 Se hai un ONT come il f6005v6, LEOX, VSOL/UPLINK puoi essere più sicuro nel cambiare il seriale e i parametri per evitare di essere bloccato dagli OLT.
 
-# Parametri OMCI (ONT Management and Control Interface)
+# Parametri OMCI (ONT Management and Control Interface). Si usano col comando show me classid "numero". I numeri da usare sono:
+#   2: ONU-G (ONU General Information)
+#   3: ONU2-G (ONU General Information 2)
+#   6: Cardholder (Physical Entity)
+#   7: Circuit Pack (Physical Entity)
+#   11: Software Image
+#   256: GEM Port Network CTP
+#   257: GEM Interworking Termination Point
+
    Vendor ID: Identifica il produttore dell'ONT.
    Serial Number: Il numero seriale univoco dell'ONT.
    Hardware Version: La versione hardware dell'ONT.
