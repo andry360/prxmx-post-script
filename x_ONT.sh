@@ -32,17 +32,20 @@ echo ""
 
 # Queste condizioni controllano il tipo di sistema operativo e se è presente il windows terminal per essere sicuro che si possano creare successivamente due finestre diverse.
 echo "Controllo del sistema operativo..."
-OS=$(uname)
+if ! command -v uname &> /dev/null; then
+    echo "[ERROR] Il comando uname non è disponibile. Impossibile determinare il sistema operativo."
+    exit 1
+fi
 if [[ "$OS" == "Linux" || "$OS" == "Darwin" ]]; then
-    echo "Sistema compatibile: $OS"
+    echo "[INFO] Sistema compatibile: $OS"
 elif [[ "$OS" == "MINGW64_NT" || "$OS" == "CYGWIN_NT" ]]; then
-    echo "Sistema Windows rilevato, controllo Windows Terminal..."
+    echo "[INFO] Sistema Windows rilevato, controllo Windows Terminal..."
     if ! command -v wt &> /dev/null; then
-        echo "Windows Terminal non trovato! Installalo prima di procedere."
+        echo "[ERROR] Windows Terminal non trovato! Installalo prima di procedere."
         exit 1
     fi
 else
-    echo "Sistema non supportato. Uscita."
+    echo "[ERROR] Sistema Operativo non supportato. Uscita."
     exit 1
 fi
 
@@ -76,10 +79,21 @@ fi
 #---------------------------------------------------------------------------------------------------------------------------------
 # 3. Ora che siamo nel modulo sfp possiamo estrapolare le informazioni necessarie o modificarle
 # Il comando: -oHostKeyAlgorithms=+ssh-dss: opzione necessaria per abilitare l'algoritmo di firma DSA.
-echo "Vuoi salvare le informazioni delle classi dell'ONT in un file sul Desktop? (s/n)"
+echo "[INFO] Vuoi salvare le informazioni delle classi dell'ONT in un file sul Desktop? (s/n)"
 read -r risposta
-if [[ "$risposta" == "s" ]]; then
+# Normalizza la risposta in caso l'utente abbia inserito una lettera maiuscola.
+decisione=$(echo "$risposta" | tr '[:upper:]' '[:lower:]')
+if [[ "$decisione" == "s" ]]; then
     output_file="$HOME/Desktop/ont_classid_info.txt"
+    if [[ -f "$output_file" ]]; then
+        echo "[WARNING] Il file $output_file esiste già. Vuoi sovrascriverlo? (s/n)"
+        read -r conferma
+        conferma_decisione=$(echo "$conferma" | tr '[:upper:]' '[:lower:]')
+        if [[ "$conferma_decisione" != "s" ]]; then
+            echo "[INFO] Operazione annullata."
+            exit 0
+        fi
+    fi
     echo "Recupero informazioni delle classi e salvataggio su: $output_file"
     ssh -p 2222 -oHostKeyAlgorithms=+ssh-dss admin@127.0.0.1 << EOF > "$output_file"
 show me classid 2
