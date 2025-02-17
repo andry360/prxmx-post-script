@@ -8,6 +8,7 @@ LOGFILE="/var/log/pci_passthrough.log"
 echo "===== Avvio configurazione PCI Passthrough =====" | tee -a "$LOGFILE"
 echo "Data e ora: $(date)" | tee -a "$LOGFILE"
 
+# ----------------------------------------------------------------------------------------------------------------------
 # 1. Abilitazione di IOMMU nel GRUB
 echo ">>> Configurazione di IOMMU nel bootloader GRUB..." | tee -a "$LOGFILE"
 
@@ -16,10 +17,10 @@ GRUB_CONFIG="/etc/default/grub"
 # 1.1. Determina se è un sistema Intel o AMD
 if grep -q "vmx" /proc/cpuinfo; then
     IOMMU_FLAG="intel_iommu=on"
-    echo "Sistema rilevato: Intel" | tee -a "$LOGFILE"
+    echo "1.1 Sistema rilevato: Intel" | tee -a "$LOGFILE"
 elif grep -q "svm" /proc/cpuinfo; then
     IOMMU_FLAG="amd_iommu=on"
-    echo "Sistema rilevato: AMD" | tee -a "$LOGFILE"
+    echo "1.1 Sistema rilevato: AMD" | tee -a "$LOGFILE"
 else
     echo "Errore: Il processore non supporta la virtualizzazione!" | tee -a "$LOGFILE"
     exit 1
@@ -27,35 +28,66 @@ fi
 
 # 1.2 Modifica GRUB se necessario
 if ! grep -q "$IOMMU_FLAG" "$GRUB_CONFIG"; then
-    echo "Abilitazione di IOMMU in GRUB..." | tee -a "$LOGFILE"
+    echo "1.2 Abilitazione di IOMMU in GRUB..." | tee -a "$LOGFILE"
     sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$IOMMU_FLAG iommu=pt /" "$GRUB_CONFIG"
     update-grub | tee -a "$LOGFILE"
 else
-    echo "IOMMU è già attivo in GRUB. con $IOMMU_FLAG" | tee -a "$LOGFILE"
+    echo "1.2 IOMMU è già attivo in GRUB. con $IOMMU_FLAG" | tee -a "$LOGFILE"
 fi
 
+# ----------------------------------------------------------------------------------------------------------------------
 # 2 Aggiungere i moduli VFIO
-echo ">>> Configurazione dei moduli VFIO..." | tee -a "$LOGFILE"
+echo ">>> 2 Configurazione dei moduli VFIO..." | tee -a "$LOGFILE"
 MODULES_FILE="/etc/modules"
 MODULES=("vfio" "vfio_iommu_type1" "vfio_pci" "vfio_virqfd")
 
 for mod in "${MODULES[@]}"; do
     if ! grep -q "^$mod" "$MODULES_FILE"; then
         echo "$mod" >> "$MODULES_FILE"
-        echo "Aggiunto modulo: $mod" | tee -a "$LOGFILE"
+        echo "2 Aggiunto modulo: $mod" | tee -a "$LOGFILE"
     else
-        echo "Modulo già presente: $mod" | tee -a "$LOGFILE"
+        echo "2 Modulo già presente: $mod" | tee -a "$LOGFILE"
     fi
 done
 
-# 3 Blacklist dei moduli WIFI e Bluetooth
+# ----------------------------------------------------------------------------------------------------------------------
+# 3. Blacklist dei driver WiFi e Bluetooth
+# 📌 File di blacklist
 BLACKLIST_FILE="/etc/modprobe.d/blacklist-mt7921e.conf"
-echo "Blacklist dei driver WIFI e bluetooth scheda di rete MEDIATEK MT7922 WIFI 6e"
-echo -e "# Driver WIFI\nblacklist mt7921e\nblacklist mt76\nblacklist mt76_connac_lib\nblacklist mt7921_common\nblacklist cfg80211\n\n# Driver Bluetooth\nblacklist btrtl\nblacklist btusb\nblacklist bluetooth\nblacklist btmtk\nblacklist mtd\nblacklist spi_nor\nblacklist cmdlinepart" > $BLACKLIST_FILE
-echo "Blacklist dei driver WIFI e Bluetooth completata. Dati inseriti nel file $BLACKLIST_FILE. Se vuoi passare altre periferiche che selezionerai nel passaggio successivo, ricorda di aggiornare questo passaggio dello script."
 
+# 📌 Moduli da blacklistare
+BLACKLIST_MODULES="
+mt7921e
+mt76
+mt76_connac_lib
+mt7921_common
+cfg80211
+btrtl
+btusb
+bluetooth
+btmtk
+mtd
+spi_nor
+cmdlinepart
+"
+
+echo "🔍 Controllo della blacklist dei driver WiFi e Bluetooth..."
+
+# 🔄 Controlla se i moduli sono già blacklistati in qualsiasi file .conf sotto /etc/modprobe.d/
+for MODULE in $BLACKLIST_MODULES; do
+    if grep -q "blacklist $MODULE" /etc/modprobe.d/*.conf 2>/dev/null; then
+        echo "✅ Il modulo '$MODULE' è già blacklistato. Nessuna modifica necessaria."
+    else
+        echo "⚠️ Il modulo '$MODULE' non è ancora blacklistato. Verrà aggiunto."
+        echo "blacklist $MODULE" >> "$BLACKLIST_FILE"
+    fi
+done
+
+echo "✅ Aggiornamento completato. Verifica il file $BLACKLIST_FILE se necessario."
+
+# ----------------------------------------------------------------------------------------------------------------------
 # 4. Identificare i dispositivi PCI disponibili per il passthrough
-echo ">>> Ricerca dei dispositivi PCI disponibili...tramite lspci -nn" | tee -a "$LOGFILE"
+echo ">>> 4 Ricerca dei dispositivi PCI disponibili...tramite lspci -nn" | tee -a "$LOGFILE"
 
 PCI_LIST=$(lspci -nn)
 declare -a PCI_IDS PCI_ADDRESSES
@@ -66,7 +98,7 @@ if [ -z "$PCI_LIST" ]; then
     exit 1
 fi
 
-echo "Elenco dispositivi PCI:" | tee -a "$LOGFILE"
+echo "4 Elenco dispositivi PCI:" | tee -a "$LOGFILE"
 while read -r LINE; do
     PCI_ADDR=$(echo "$LINE" | awk '{print $1}')
     PCI_ID=$(lspci -n -s "$PCI_ADDR" | awk '{print $3}')
@@ -92,21 +124,24 @@ for SELECTION in $SELECTIONS; do
     SELECTED_IDS+=("${PCI_IDS[$((SELECTION-1))]}")
 done
 
+# ----------------------------------------------------------------------------------------------------------------------
 # 5. Configurazione VFIO con i dispositivi scelti
 VFIO_CONF="/etc/modprobe.d/vfio.conf"
 
-echo ">>> Configurazione di VFIO per i dispositivi selezionati..." | tee -a "$LOGFILE"
+echo ">>> 5 Configurazione di VFIO per i dispositivi selezionati..." | tee -a "$LOGFILE"
 VFIO_IDS=$(IFS=,; echo "${SELECTED_IDS[*]}")
 
 # il disable_idle_d3=1 è un parametro aggiuntivo per disabilitare lo stato di (idle) dei dispositivi. Assicura quindi che la scheda di rete non vada in sospensione.
-echo "options vfio-pci ids=$VFIO_IDS disable_idle_d3=1" > "$VFIO_CONF"
-echo "Dispositivi configurati per il passthrough: $VFIO_IDS" | tee -a "$LOGFILE"
+echo "5 options vfio-pci ids=$VFIO_IDS disable_idle_d3=1" > "$VFIO_CONF"
+echo "5 Dispositivi configurati per il passthrough: $VFIO_IDS" | tee -a "$LOGFILE"
 
+# ----------------------------------------------------------------------------------------------------------------------
 # 6. Aggiornare initramfs e riavviare
-echo ">>> Aggiornamento initramfs..." | tee -a "$LOGFILE"
+echo ">>> 6 Aggiornamento initramfs..." | tee -a "$LOGFILE"
 update-initramfs -u | tee -a "$LOGFILE"
 
+# ----------------------------------------------------------------------------------------------------------------------
 # 7.  La scheda di rete MEDIATEK MT7922 PCIe supporta il reset a livello di bus invece del FLR standard. Forzo quindi il reset a livello di bus:
 echo 'ACTION=="add", SUBSYSTEM=="pci", ATTR{reset_method}="bus"' | tee /etc/udev/rules.d/99-vfio.rules
 
-echo "Operazione completata! Riavviare il sistema per applicare le modifiche." | tee -a "$LOGFILE"
+echo "7 Operazione completata! Riavviare il sistema per applicare le modifiche." | tee -a "$LOGFILE"
