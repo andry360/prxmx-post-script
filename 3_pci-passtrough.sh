@@ -32,7 +32,7 @@ if ! grep -q "$IOMMU_FLAG" "$GRUB_CONFIG"; then
     sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$IOMMU_FLAG iommu=pt /" "$GRUB_CONFIG"
     update-grub | tee -a "$LOGFILE"
 else
-    echo "1.2 IOMMU è già attivo in GRUB. con $IOMMU_FLAG" | tee -a "$LOGFILE"
+    echo "1.2 ⚠️ IOMMU è già attivo in GRUB. con $IOMMU_FLAG" | tee -a "$LOGFILE"
 fi
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -44,9 +44,9 @@ MODULES=("vfio" "vfio_iommu_type1" "vfio_pci" "vfio_virqfd")
 for mod in "${MODULES[@]}"; do
     if ! grep -q "^$mod" "$MODULES_FILE"; then
         echo "$mod" >> "$MODULES_FILE"
-        echo "2 Aggiunto modulo: $mod" | tee -a "$LOGFILE"
+        echo "✅ 2 Aggiunto modulo: $mod" | tee -a "$LOGFILE"
     else
-        echo "2 Modulo già presente: $mod" | tee -a "$LOGFILE"
+        echo "⚠️ 2 Modulo già presente: $mod" | tee -a "$LOGFILE"
     fi
 done
 
@@ -76,9 +76,9 @@ echo "🔍 Controllo della blacklist dei driver WiFi e Bluetooth..."
 # 🔄 Controlla se i moduli sono già blacklistati in qualsiasi file .conf sotto /etc/modprobe.d/
 for MODULE in $BLACKLIST_MODULES; do
     if grep -q "blacklist $MODULE" /etc/modprobe.d/*.conf 2>/dev/null; then
-        echo "✅ Il modulo '$MODULE' è già blacklistato. Nessuna modifica necessaria."
+        echo "⚠️ Il modulo '$MODULE' è già blacklistato. Nessuna modifica necessaria."
     else
-        echo "⚠️ Il modulo '$MODULE' non è ancora blacklistato. Verrà aggiunto."
+        echo "✅ Il modulo '$MODULE' non è ancora blacklistato. Verrà aggiunto."
         echo "blacklist $MODULE" >> "$BLACKLIST_FILE"
     fi
 done
