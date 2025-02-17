@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Elenco degli script
+# Il comando per lanciare questo script da github è: bash -c "$(wget -qLO - https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/start.sh)"
 scripts=(
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/1_pxmx-post-install.sh Script post-installazione"
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/2_pxmx-set-interfaces.sh Script settaggio Network"
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/3_pci-passtrough.sh Script predisposizione PCI Passtrough"
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/4_openwrt-24-10-v1.sh Script creazione VM openWRT 24.10"
-    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/5_openwrt-drivers-software.sh Script installazione driver e software" per OpenWRT
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/5_openwrt-drivers-software.sh Script installazione driver e software per OpenWRT"
 )
 
 # Mostra l'elenco numerato
