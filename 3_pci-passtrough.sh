@@ -138,7 +138,7 @@ echo "5 Dispositivi configurati per il passthrough: $VFIO_IDS" | tee -a "$LOGFIL
 
 # ----------------------------------------------------------------------------------------------------------------------
 # 6. Aggiornare initramfs e riavviare
-echo ">>> 6 Aggiornamento initramfs..." | tee -a "$LOGFILE"
+echo ">>> 6 Aggiornamento initramfs tramite comando: update-initramfs -u ..." | tee -a "$LOGFILE"
 update-initramfs -u | tee -a "$LOGFILE"
 
 # ----------------------------------------------------------------------------------------------------------------------
