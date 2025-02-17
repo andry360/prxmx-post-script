@@ -1,31 +1,12 @@
 #!/bin/sh
 
-# Aggiorna i pacchetti
-opkg update
+# 🔍 Verifica se il sistema è OpenWRT
+if ! grep -q "OpenWrt" /etc/os-release 2>/dev/null && ! uname -a | grep -qi "OpenWrt"; then
+    echo "❌ Errore: Questo script è pensato per OpenWRT e non può essere eseguito su altri sistemi."
+    exit 1
+fi
 
-# Installa i driver WiFi MediaTek MT7922 e WPA Supplicant
-opkg install wpa-supplicant-openssl
-opkg install kmod-mt76
-opkg install kmod-mt7922-firmware
-opkg install kmod-mt792x-common
-opkg install kmod-mt7921-common
-opkg install kmod-mt7921-firmware
-
-# Installa Nano come editor di testo
-opkg install nano
-
-# Installa pacchetto WPA full
-opkg install wpad
-
-# Installa utilità PCI per verificare i dispositivi
-opkg install pciutils
-
-# Riavvia il sistema per applicare i cambiamenti
-echo "Installazione completata. Riavvio in 5 secondi..."
-sleep 5
-reboot
-
-#!/bin/sh
+echo "✅ OpenWRT rilevato, procedo con l'installazione..."
 
 echo "🔄 Aggiornamento della lista dei pacchetti..."
 opkg update && echo "✅ Update completato" || echo "❌ Errore durante l'aggiornamento"
