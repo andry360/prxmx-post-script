@@ -69,6 +69,7 @@ btmtk
 mtd
 spi_nor
 cmdlinepart
+iwlwifi
 "
 
 echo "🔍 Controllo della blacklist dei driver WiFi e Bluetooth..."
