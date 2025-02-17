@@ -133,7 +133,7 @@ echo ">>> 5 Configurazione di VFIO per i dispositivi selezionati..." | tee -a "$
 VFIO_IDS=$(IFS=,; echo "${SELECTED_IDS[*]}")
 
 # il disable_idle_d3=1 è un parametro aggiuntivo per disabilitare lo stato di (idle) dei dispositivi. Assicura quindi che la scheda di rete non vada in sospensione.
-echo "5 options vfio-pci ids=$VFIO_IDS disable_idle_d3=1" > "$VFIO_CONF"
+echo "options vfio-pci ids=$VFIO_IDS disable_idle_d3=1" > "$VFIO_CONF"
 echo "5 Dispositivi configurati per il passthrough: $VFIO_IDS" | tee -a "$LOGFILE"
 
 # ----------------------------------------------------------------------------------------------------------------------
