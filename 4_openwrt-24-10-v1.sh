@@ -577,5 +577,4 @@ VLAN_FINISH=""
 if [ "$VLAN" == "" ] && [ "$VLAN2" != "999" ]; then
   VLAN_FINISH=" Please adjust the VLAN tags to suit your network."
 fi
-msg_ok "Completed Successfully! remember to install: WLAN drivers (kmod-mt7922-firmware e mt7921
- and driver in my case); wpad drivers; nano; wpa-supplicant-openssl (for wireless and wpa3).\n${VLAN_FINISH}"
+msg_ok "Completed Successfully! remember to install: WLAN drivers; wpad drivers; nano; wpa-supplicant-openssl (for wireless and wpa3); pciutils.\n${VLAN_FINISH}"
