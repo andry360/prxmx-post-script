@@ -20,7 +20,6 @@ nano /etc/network/interfaces
 journalctl -f
 
 
-
 #----------------------------------------------------------------------------
 # openWRT
 #----------------------------------------------------------------------------
@@ -31,6 +30,3 @@ nano /etc/config/wireless
 # Con questi comandi ho avviato la scheda wifi
 wifi down
 wifi up
-
-
-

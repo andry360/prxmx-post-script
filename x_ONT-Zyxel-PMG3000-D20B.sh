@@ -1,5 +1,5 @@
 #!/bin/bash
-# Questo script serve per la ricerca delle informazioni e modifica degli apparati ONT.
+# Questo script serve per la ricerca delle informazioni e modifica dell'ONT SFP Zyxel PMG3000-D20B.
 # https://hack-gpon.org/ont-zyxel-pmg3000-d20b/
 # Legenda comandi ssh
 # ssh -o: Permette di specificare opzioni di configurazione per la connessione SSH. Ad esempio, puoi usare ssh -o "StrictHostKeyChecking=no" user@host per disabilitare il controllo della chiave host.

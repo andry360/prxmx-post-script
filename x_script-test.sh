@@ -17,7 +17,7 @@ PCI_LIST=$(lspci -nn)
 PCI_IDS=()
 PCI_ADDRESSES=()
 
-# Creazione dell'elenco numerato
+# Creazione dell'elenco numerato dei dispositivi PCI
 if [ -z "$PCI_LIST" ]; then
     echo "Nessun dispositivo PCI rilevato! Controlla con 'lspci -nn'."
     exit 1

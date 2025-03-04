@@ -65,7 +65,6 @@ function cleanup() {
   rm -rf $TEMP_DIR
 }
 
-
 # ================================================================
 # Creazione directory temporanea
 # ================================================================
@@ -523,18 +522,6 @@ qm set $VMID \
 qm set $VMID -delete efidisk0
 
 # ================================================================
-# Passtrough scheda di rete
-# ================================================================
-echo "Verifica della scheda WiFi PCI..."
-WIFI_PCI=$(lspci -nn | grep -i network | grep -oE '^[0-9a-f:.]+' | head -n 1)
-if [[ -n "$WIFI_PCI" ]]; then
-    echo "Trovata scheda WiFi: $WIFI_PCI"
-    #qm set $VMID --hostpci0 $WIFI_PCI,pcie=1 2>&1     commentato perche' non funziona momentaneamente il passtrough
-else
-    echo "⚠️ Nessuna scheda WiFi PCI trovata!" 
-fi
-
-# ================================================================
 # Settaggio VM con i parametri creati in precedenza tramite UCI
 # ================================================================
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
@@ -555,6 +542,24 @@ send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
 send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
 send_line_to_vm "uci set firewall.@zone[1].input='ACCEPT'"
 send_line_to_vm "uci set firewall.@zone[1].forward='ACCEPT'"
+# Settaggio connessione PPoE per WAN
+send_line_to_vm "uci set network.wan=interface"
+send_line_to_vm "uci set network.wan.device=eth1.835"
+send_line_to_vm "uci set network.wan.proto=pppoe"
+send_line_to_vm "uci set network.wan.username='benvenuto'"
+send_line_to_vm "uci set network.wan.password='ospite'"
+send_line_to_vm "uci set network.wan.encapsulation='llc'"
+send_line_to_vm "uci set network.wan.nat='1'"
+# Settaggio connessione PPoE per VOIP
+## send_line_to_vm "uci set network.voice=interface"
+## send_line_to_vm "uci set network.voice.device=eth1.836"
+## send_line_to_vm "uci set network.voice.proto=none"
+## send_line_to_vm "uci set network.wan.igmp_snooping='1'"
+# CoS=Class of Service. Gestito attraverso il pacchetto Traffic Control, permette di assegnare prioirità a determinati pacchetti.
+## send_line_to_vm "uci set network.wan.dscp_prio='0'"  # CoS 0 per dati
+## send_line_to_vm "uci set network.voice.igmp_snooping='1'"
+## send_line_to_vm "uci set network.voice.dscp_prio='5'"  # CoS 5 per voce
+# committo le modifiche
 send_line_to_vm "uci commit"
 send_line_to_vm "halt"
 msg_ok "Network interfaces have been successfully configured."

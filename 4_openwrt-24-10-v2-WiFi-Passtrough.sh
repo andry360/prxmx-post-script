@@ -1,33 +1,39 @@
 #!/usr/bin/env bash
 
-# ================================================================
-# 1
-# ================================================================
 function header_info {
   clear
   cat <<"EOF"
 OPENWRT VM CREATION SCRIPT
 EOF
 }
+# Richiamo funzione header_info
 header_info
+
 echo -e "Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 NEXTID=$(pvesh get /cluster/nextid)
 # ================================================================
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
-HA=$(echo "\033[1;34m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD="-"
+YW=$(echo "\033[33m")  # Yellow
+BL=$(echo "\033[36m") # Blue
+HA=$(echo "\033[1;34m") # High Intensity Blue
+RD=$(echo "\033[01;31m") # Red
+BGN=$(echo "\033[4;92m") #
+GN=$(echo "\033[1;92m") #
+DGN=$(echo "\033[32m") #
+CL=$(echo "\033[m") # 
+BFR="\\r\\033[K" #
+HOLD="-" #
 CM="${GN}✓${CL}"
-CROSS="${RD}✗${CL}"
+CROSS="${RD}✗${CL}" #
+# Questo comando imposta diverse opzioni per la shell Bash, influenzando il modo in cui lo script gestisce gli errori e le pipeline di comandi
+# E= Lo script termina immediatamente se un comando fallisce (ovvero, restituisce un codice di uscita diverso da zero)
+# e= Quando un comando fallisce, viene visualizzato il comando stesso prima che lo script termini. Questo aiuta a capire quale comando ha causato l'errore.
+# o pipefail= Se un comando in una pipeline fallisce, l'intera pipeline viene considerata fallita. Normalmente, in una pipeline (ad esempio, comando1 | comando2), se comando2 fallisce ma comando1 ha successo, la pipeline viene considerata riuscita. Questa opzione cambia tale comportamento.
 set -Eeo pipefail
+# imposta una trappola per il segnale di errore (ERR)
+# Specifica il comando da eseguire quando viene catturato il segnale ERR. In questo caso, viene chiamata la funzione error_handler
+# LINENO è la variabile Bash che contiene il numero di riga del comando che ha causato l'errore e BASH_COMMAND è quella che contiene il comando che l'ha causato.
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 
@@ -58,6 +64,7 @@ function cleanup() {
   popd >/dev/null
   rm -rf $TEMP_DIR
 }
+
 
 # ================================================================
 # Creazione directory temporanea
@@ -179,11 +186,11 @@ function exit-script() {
 }
 
 # ================================================================
-# Funzione settaggi default
+# Funzione settaggi default VM
 # ================================================================
 function default_settings() {
   VMID=$NEXTID
-  HN=openwrt
+  HN="openwrt"
   CORE_COUNT="2"
   RAM_SIZE="512"
   BRG="vmbr0"
@@ -196,6 +203,9 @@ function default_settings() {
   LAN_VLAN=""
   MTU=""
   START_VM="yes"
+  EFI_DISK="yes"  # Attiva disco EFI
+  STORAGE_POOL="local-lvm"  # Nome dello storage per il disco EFI
+
   echo -e "${DGN}Using Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${DGN}Using Hostname: ${BGN}${HN}${CL}"
   echo -e "${DGN}Allocated Cores: ${BGN}${CORE_COUNT}${CL}"
@@ -209,12 +219,14 @@ function default_settings() {
   echo -e "${DGN}Using LAN IP Address: ${BGN}${LAN_IP_ADDR}${CL}"
   echo -e "${DGN}Using LAN NETMASK: ${BGN}${LAN_NETMASK}${CL}"
   echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${BL}Creating a OpenWRT VM using the above default settings${CL}"
+  echo -e "${DGN}Using EFI Boot: ${BGN}${EFI_DISK}${CL}"
+  echo -e "${DGN}Using Storage Pool: ${BGN}${STORAGE_POOL}${CL}"
+  echo -e "${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
+  echo -e "${BL}Creating an OpenWRT VM using the above default settings${CL}"
 }
 
 # ================================================================
-# Funzione settaggi avanzati
+# Funzione settaggi avanzati VM
 # ================================================================
 
 function advanced_settings() {
@@ -234,6 +246,24 @@ function advanced_settings() {
       exit-script
     fi
   done
+
+  # Aggiunta opzione per il tipo di boot (BIOS o UEFI)
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "Enable EFI Boot" --yesno "Use UEFI boot (OVMF)?" 10 58); then
+    USE_EFI="yes"
+  else
+    USE_EFI="no"
+  fi
+  echo -e "${DGN}Using EFI Boot: ${BGN}$USE_EFI${CL}"
+
+  # Aggiunta opzione per lo storage pool
+  if STORAGE_POOL=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Storage Pool (default: local-lvm)" 8 58 local-lvm --title "STORAGE POOL" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z "$STORAGE_POOL" ]; then
+      STORAGE_POOL="local-lvm"
+    fi
+    echo -e "${DGN}Using Storage Pool: ${BGN}$STORAGE_POOL${CL}"
+  else
+    exit-script
+  fi
 
   if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 openwrt --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
@@ -386,11 +416,8 @@ function start_script() {
   fi
 }
 
-arch_check
 pve_check
-ssh_check
 start_script
-
 
 # ================================================================
 # Validazione storage
@@ -430,14 +457,21 @@ msg_info "Getting URL for OpenWrt Disk Image"
 # Download openwrt
 # ================================================================
 response=$(curl -s https://openwrt.org)
-betaversion=$(echo "$response" | sed -n 's/.*Current beta release - OpenWrt \([0-9.]\+\).*/\1/p')
-URL="https://downloads.openwrt.org/releases/$betaversion/targets/x86/64/openwrt-$betaversion-x86-64-generic-ext4-combined.img.gz"
+URL="https://mirror-03.infra.openwrt.org/releases/24.10.0-rc7/targets/x86/64/openwrt-24.10.0-rc7-x86-64-generic-ext4-combined-efi.img.gz"
 stableversion=$(echo "$response" | sed -n 's/.*Current stable release - OpenWrt \([0-9.]\+\).*/\1/p')
 #URL="https://downloads.openwrt.org/releases/$stableversion/targets/x86/64/openwrt-$stableversion-x86-64-generic-ext4-combined.img.gz"
 
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-wget -q --show-progress $URL
+# Controlla se il file è già scaricato
+FILE=$(basename "$URL")
+if [ -f "$FILE" ]; then
+  msg_ok "File ${CL}${BL}$FILE${CL} già presente. Salto il download."
+else
+  wget -q --show-progress "$URL"
+  echo -en "\e[1A\e[0K"
+  msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
+fi
 echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
@@ -475,16 +509,34 @@ qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
+  -bios ovmf \
+  -machine q35 \
   -efidisk0 ${DISK0_REF},efitype=4m,size=4M \
   -scsi0 ${DISK1_REF},size=512M \
   -boot order=scsi0 \
   -tags proxmox-helper-scripts \
   -description "<div align='center'><a href='https://Helper-Scripts.com'><img src='https://raw.githubusercontent.com/tteck/Proxmox/main/misc/images/logo-81x112.png'/></a>
-
   # OpenWRT
-
-  <a href='https://ko-fi.com/D1D7EP4GF'><img src='https://img.shields.io/badge/&#x2615;-Buy me a coffee-blue' /></a>
   </div>" >/dev/null
+
+# Dato che senza l'efidisk ricevo un errore, ma considerando anche il fatto che dopo aver creato la VM questa non si avvia con l'efidisk...lo rimuovo subito dop averla creata.
+qm set $VMID -delete efidisk0
+
+# ================================================================
+# Passtrough scheda di rete
+# ================================================================
+echo "Verifica della scheda WiFi PCI..."
+WIFI_PCI=$(lspci -nn | grep -i network | grep -oE '^[0-9a-f:.]+' | head -n 1)
+if [[ -n "$WIFI_PCI" ]]; then
+    echo "Trovata scheda WiFi: $WIFI_PCI"
+    #qm set $VMID --hostpci0 $WIFI_PCI,pcie=1 2>&1     commentato perche' non funziona momentaneamente il passtrough
+else
+    echo "⚠️ Nessuna scheda WiFi PCI trovata!" 
+fi
+
+# ================================================================
+# Settaggio VM con i parametri creati in precedenza tramite UCI
+# ================================================================
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
 msg_info "OpenWrt is being started in order to configure the network interfaces."
 qm start $VMID
@@ -503,11 +555,31 @@ send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
 send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
 send_line_to_vm "uci set firewall.@zone[1].input='ACCEPT'"
 send_line_to_vm "uci set firewall.@zone[1].forward='ACCEPT'"
+# Settaggio connessione PPoE per WAN
+send_line_to_vm "uci set network.wan=interface"
+send_line_to_vm "uci set network.wan.device=eth1.835"
+send_line_to_vm "uci set network.wan.proto=pppoe"
+send_line_to_vm "uci set network.wan.username='benvenuto'"
+send_line_to_vm "uci set network.wan.password='ospite'"
+send_line_to_vm "uci set network.wan.encapsulation='llc'"
+send_line_to_vm "uci set network.wan.nat='1'"
+# Settaggio connessione PPoE per VOIP
+## send_line_to_vm "uci set network.voice=interface"
+## send_line_to_vm "uci set network.voice.device=eth1.836"
+## send_line_to_vm "uci set network.voice.proto=none"
+## send_line_to_vm "uci set network.wan.igmp_snooping='1'"
+# CoS=Class of Service. Gestito attraverso il pacchetto Traffic Control, permette di assegnare prioirità a determinati pacchetti.
+## send_line_to_vm "uci set network.wan.dscp_prio='0'"  # CoS 0 per dati
+## send_line_to_vm "uci set network.voice.igmp_snooping='1'"
+## send_line_to_vm "uci set network.voice.dscp_prio='5'"  # CoS 5 per voce
+# committo le modifiche
 send_line_to_vm "uci commit"
 send_line_to_vm "halt"
 msg_ok "Network interfaces have been successfully configured."
+msg_info "VM is being stopped."
 until qm status $VMID | grep -q "stopped"; do
   sleep 2
+  msg_info "VM is not stopped yet. Waiting..."
 done
 msg_info "Bridge interfaces are being added."
 qm set $VMID \
@@ -521,6 +593,6 @@ if [ "$START_VM" == "yes" ]; then
 fi
 VLAN_FINISH=""
 if [ "$VLAN" == "" ] && [ "$VLAN2" != "999" ]; then
-  VLAN_FINISH=" Please remember to adjust the VLAN tags to suit your network."
+  VLAN_FINISH=" Please adjust the VLAN tags to suit your network."
 fi
-msg_ok "Completed Successfully!\n${VLAN_FINISH}"
+msg_ok "Completed Successfully! remember to install: WLAN drivers; wpad drivers; nano; wpa-supplicant-openssl (for wireless and wpa3); pciutils.\n${VLAN_FINISH}"
