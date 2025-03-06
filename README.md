@@ -59,7 +59,7 @@ F6005v3 è il più nuovo dei due e il più performante. Permette di modificiare
  ploam = password di autenticazione per l'olt (dovrebbe iniziare con 3 A). Potrebbe non essere richiesto da WIND, potrebbe volerlo fibercop
  equipment
 
-F6005v6 è più vecchio e nelle prime versioni soffre di flowqualcosa. permette di modificare
+F6005v6 è più vecchio e nelle prime versioni soffre di prestazioni in upload basse. Il problema è mitigabile se il router ha funzionalità flowcontrol, che in poche parole "sincronizza" i pacchetti inviati dal pc al server. Permette di modificare:
  parametri omci = 
  seriale
  ploam = password di autenticazione per l'olt
