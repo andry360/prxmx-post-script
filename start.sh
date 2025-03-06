@@ -8,7 +8,9 @@ scripts=(
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/3_pci-passtrough.sh Script predisposizione PCI Passtrough (usalo solo se devi passare dei dispositivi PCI a una VM)"
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/4_openwrt-24-10-v2.sh Script creazione VM openWRT 24.10"
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/5_openwrt-drivers-software.sh Script installazione driver e software per OpenWRT"
-       "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/6_diagnostica-rete.sh Script di verifica connessione ad internet di OpenWRT"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/6_diagnostica-rete.sh Script di verifica connessione ad internet di OpenWRT"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/7_diagnostica-rete-totale-openwrt.sh Script diagnostica completa rete OpenWRT"
+    "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/8_diagnostica-rete-totale-prxmx.sh Script diagnostica completa rete OpenWRT"    
 )
 
 # Mostra l'elenco numerato
