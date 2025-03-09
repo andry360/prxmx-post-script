@@ -1,41 +1,61 @@
 #!/bin/bash
 
-# Scaricare l'intero progetto in una cartella
+# Il comando per lanciare questo script da github è: bash -c "$(wget -qLO - https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/start_local.sh)"
+
+# Cartella locale del progetto
 project_dir="/prxmx-post-script"
-echo "Scaricamento del progetto nella directory $project_dir..."
-mkdir -p "$project_dir"
-wget -qO- https://github.com/andry360/prxmx-post-script/archive/refs/heads/main.tar.gz | tar -xz -C "$project_dir" --strip-components=1
-echo "Progetto scaricato con successo."
 
-# Elenco degli script (percorsi locali)
-scripts=(
-    "$project_dir/1_pxmx-post-install.sh Script post-installazione"
-    "$project_dir/2_pxmx-set-interfaces.sh Script settaggio Network"
-    "$project_dir/3_pci-passtrough.sh Script predisposizione PCI Passtrough (usalo solo se devi passare dei dispositivi PCI a una VM)"
-    "$project_dir/4_openwrt/4.0_openwrt-24-10-v2.sh Script creazione VM openWRT 24.10"
-    "$project_dir/4_openwrt/4.1_openwrt-drivers-software.sh Script installazione driver e software per OpenWRT"
-    "$project_dir/5_diagnostica-rete.sh Script di verifica connessione ad internet di OpenWRT"
-    "$project_dir/6_diagnostica-rete-totale-openwrt.sh Script diagnostica completa rete OpenWRT"
-    "$project_dir/7_diagnostica-rete-totale-prxmx.sh Script diagnostica completa rete OpenWRT"
-)
+# URL del repository remoto
+repo_url="https://github.com/andry360/prxmx-post-script/archive/refs/heads/main.tar.gz"
 
-# Mostra l'elenco numerato
-echo "Seleziona lo script da eseguire:"
-for i in "${!scripts[@]}"; do
-    echo "$((i+1)) - ${scripts[$i]#* }"
-done
+# Scarica il progetto in una directory temporanea
+temp_dir=$(mktemp -d)
+echo "Scaricamento del progetto in una directory temporanea..."
+wget -qO- "$repo_url" | tar -xz -C "$temp_dir" --strip-components=1
 
-# Leggi la scelta dell'utente
-read -p "Inserisci il numero dello script da eseguire: " choice
-
-# Controlla se la scelta è valida
-if [[ "$choice" -ge 1 && "$choice" -le ${#scripts[@]} ]]; then
-    # Seleziona il percorso dello script scelto
-    script_path="${scripts[$((choice-1))]%% *}"
-    echo "Eseguendo lo script: ${scripts[$((choice-1))]#* }"
-    # Esegui lo script selezionato
-    bash "$script_path"
+# Verifica la presenza della directory locale
+if [[ -d "$project_dir" ]]; then
+    echo "Confronto dei file con la directory locale: $project_dir"
+    
+    # Loop attraverso i file scaricati
+    for file in $(find "$temp_dir" -type f); do
+        relative_path="${file#$temp_dir/}"
+        local_file="$project_dir/$relative_path"
+        
+        # Controlla se il file esiste localmente
+        if [[ -f "$local_file" ]]; then
+            echo "Trovato file esistente: $relative_path"
+            
+            # Confronta i file
+            if ! diff -q "$file" "$local_file" > /dev/null; then
+                echo "Il file è cambiato: $relative_path"
+                read -p "Vuoi sovrascrivere questo file? (s/n): " choice
+                if [[ "$choice" == "s" ]]; then
+                    cp "$file" "$local_file"
+                    echo "File sovrascritto: $relative_path"
+                else
+                    echo "File mantenuto invariato: $relative_path"
+                fi
+            else
+                echo "Il file è identico: $relative_path"
+            fi
+        else
+            echo "Nuovo file trovato: $relative_path"
+            read -p "Vuoi copiare questo file? (s/n): " choice
+            if [[ "$choice" == "s" ]]; then
+                mkdir -p "$(dirname "$local_file")"
+                cp "$file" "$local_file"
+                echo "File copiato: $relative_path"
+            fi
+        fi
+    done
 else
-    echo "Scelta non valida. Uscita."
-    exit 1
+    echo "Directory locale non trovata. Copia dell'intero progetto..."
+    mkdir -p "$project_dir"
+    cp -r "$temp_dir/"* "$project_dir/"
+    echo "Progetto copiato nella directory locale."
 fi
+
+# Rimuovi la directory temporanea
+rm -rf "$temp_dir"
+echo "Pulizia completata. Operazione terminata."

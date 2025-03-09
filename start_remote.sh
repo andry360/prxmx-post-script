@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Elenco degli script
-# Il comando per lanciare questo script da github è: bash -c "$(wget -qLO - https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/start.sh)"
+# Il comando per lanciare questo script da github è: bash -c "$(wget -qLO - https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/start_remote.sh)"
 scripts=(
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/1_pxmx-post-install.sh Script post-installazione"
     "https://raw.githubusercontent.com/andry360/prxmx-post-script/refs/heads/main/2_pxmx-set-interfaces.sh Script settaggio Network"
