@@ -1,5 +1,38 @@
 #!/bin/sh
 
+# Verifica numero di connessioni massime
+#  cat /proc/sys/net/netfilter/nf_conntrack_max
+
+# Verifica numero di connessioni attive
+#  cat /proc/sys/net/netfilter/nf_conntrack_count
+
+# Questo comando elenca i dispositivi che hanno aperto più connessioni.
+#  conntrack -L | awk '{print $5}' | cut -d= -f2 | sort | uniq -c | sort -nr | head -20
+
+# Lista delle connessioni ESTABLISHED (aperte da dispositivi interni).
+# Se vedi molte connessioni su porte sospette (es. 80, 443, 53 in eccesso), potrebbe esserci un dispositivo che sta facendo richieste infinite.
+#  netstat -anp | grep ESTABLISHED
+
+# Controllare quali IP stanno consumando la rete tramite Lista delle connessioni attive verso Internet:
+#  conntrack -L | grep dport | awk '{print $7}' | cut -d= -f2 | sort | uniq -c | sort -nr | head -20
+
+# Ti permette di vedere quali IP stanno consumando più banda.
+#  iftop -i eth0
+
+# Questo comando mostra i processi e il loro utilizzo di risorse
+# htop
+
+# Ti permette di vedere quali pacchetti stanno saturando la rete.
+# tcpdump -i eth0 -n
+
+# Lista degli IP esterni con più connessioni aperte:
+# Se c'è un IP sconosciuto con centinaia/migliaia di connessioni, potrebbe essere un attacco esterno.
+#  netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -20
+
+# Bloccare un IP sospetto
+#  iptables -A INPUT -s 185.34.10.25 -j DROP
+#  iptables -A FORWARD -s 185.34.10.25 -j DROP
+
 # Nome del file temporaneo
 OUTPUT_FILE="/tmp/diagnosi_rete.txt"
 SEPARATORE="----- FINE PRIMA PARTE - INIZIA QUI LA COPIA -----"
